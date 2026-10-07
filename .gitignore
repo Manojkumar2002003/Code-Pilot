@@ -19,6 +19,11 @@ __pycache__/
 .env.*
 !.env.example
 
+# Local application data
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
 # IDE
 .vscode/*
 !.vscode/extensions.json
@@ -30,8 +35,3 @@ Thumbs.db
 
 # Logs
 *.log
-
-# Local databases
-*.db
-*.sqlite
-*.sqlite3

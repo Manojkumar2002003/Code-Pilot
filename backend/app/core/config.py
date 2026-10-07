@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     host: str = "127.0.0.1"
     port: int = 8000
+    database_url: str = "sqlite:///./data/codepilot.db"
 
     @property
     def service_name(self) -> str:
