@@ -79,24 +79,26 @@ function ProjectsPage() {
       ) : (
         <div className="project-list-grid">
           {projects.map((project) => (
-            <article key={project.id} className="project-card" aria-label={`Project ${project.name}`}>
-              <div className="project-card-header">
-                <div>
-                  <h3>{project.name}</h3>
+            <Link key={project.id} to={`/projects/${project.id}`} className="project-card-link">
+              <article className="project-card" aria-label={`Project ${project.name}`}>
+                <div className="project-card-header">
+                  <div>
+                    <h3>{project.name}</h3>
+                  </div>
+                  <span className={`project-badge project-badge-${project.status}`}>
+                    {project.status}
+                  </span>
                 </div>
-                <span className={`project-badge project-badge-${project.status}`}>
-                  {project.status}
-                </span>
-              </div>
 
-              <p className="project-description">
-                {project.description?.trim() ? project.description.trim() : 'No description'}
-              </p>
+                <p className="project-description">
+                  {project.description?.trim() ? project.description.trim() : 'No description'}
+                </p>
 
-              <div className="project-meta">
-                <span>Created {formatProjectDate(project.created_at)}</span>
-              </div>
-            </article>
+                <div className="project-meta">
+                  <span>Created {formatProjectDate(project.created_at)}</span>
+                </div>
+              </article>
+            </Link>
           ))}
         </div>
       )}
@@ -105,3 +107,6 @@ function ProjectsPage() {
 }
 
 export default ProjectsPage
+
+
+

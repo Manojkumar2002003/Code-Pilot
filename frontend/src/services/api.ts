@@ -155,6 +155,10 @@ export async function getProjects(): Promise<Project[]> {
   return request<Project[]>('/api/projects')
 }
 
+export async function getProject(projectId: string): Promise<Project> {
+  return request<Project>(`/api/projects/${projectId}`)
+}
+
 export async function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>('/api/health')
 }
