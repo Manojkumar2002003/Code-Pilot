@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import ErrorState from '../components/common/ErrorState'
 import LoadingState from '../components/common/LoadingState'
-import { ApiError, getProject, type Project } from '../services/api'
+import { ApiError, deleteProject, getProject, type Project } from '../services/api'
 
 function formatProjectDate(value: string): string {
   const parsed = new Date(value)
@@ -22,10 +22,16 @@ function formatProjectDate(value: string): string {
 
 function ProjectDetailsPage() {
   const { projectId } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [deleteRequested, setDeleteRequested] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const successMessage = (location.state as { successMessage?: string } | null)?.successMessage ?? null
 
   const loadProject = useCallback(async () => {
     if (!projectId) {
@@ -38,6 +44,7 @@ function ProjectDetailsPage() {
     setLoading(true)
     setError(null)
     setNotFound(false)
+    setDeleteError(null)
 
     try {
       const data = await getProject(projectId)
@@ -62,6 +69,39 @@ function ProjectDetailsPage() {
   useEffect(() => {
     void loadProject()
   }, [loadProject])
+
+  const handleDelete = async () => {
+    if (!projectId || !project) {
+      return
+    }
+
+    setDeleteError(null)
+    setDeleting(true)
+
+    try {
+      await deleteProject(projectId)
+      navigate('/projects', {
+        state: {
+          successMessage: `Project "${project.name}" deleted successfully.`,
+        },
+      })
+    } catch (caughtError) {
+      if (caughtError instanceof ApiError && caughtError.status === 404) {
+        setNotFound(true)
+        setDeleteRequested(false)
+        return
+      }
+
+      if (caughtError instanceof ApiError) {
+        setDeleteError(caughtError.message)
+        return
+      }
+
+      setDeleteError('Unable to delete the project. Please try again.')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   if (loading) {
     return <LoadingState message="Loading project..." />
@@ -108,6 +148,45 @@ function ProjectDetailsPage() {
           ← Back to Projects
         </Link>
       </div>
+
+      {successMessage ? <div className="success-banner">{successMessage}</div> : null}
+      {deleteError ? (
+        <div className="form-error" role="alert">
+          {deleteError}
+        </div>
+      ) : null}
+
+      <div className="project-action-row">
+        <Link to={`/projects/${project.id}/edit`} className="primary-button">
+          Edit Project
+        </Link>
+        <button
+          type="button"
+          className="danger-button"
+          onClick={() => setDeleteRequested(true)}
+          aria-label={`Delete ${project.name}`}
+        >
+          Delete Project
+        </button>
+      </div>
+
+      {deleteRequested ? (
+        <div className="state-panel delete-confirmation">
+          <h3>Delete project?</h3>
+          <p>
+            Are you sure you want to delete <strong>{project.name}</strong>? This action cannot be undone.
+          </p>
+
+          <div className="project-confirmation-actions">
+            <button type="button" className="secondary-button" onClick={() => setDeleteRequested(false)}>
+              Cancel
+            </button>
+            <button type="button" className="danger-button" onClick={handleDelete} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete Project'}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <article className="project-details-card">
         <div className="project-details-header-block">

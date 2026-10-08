@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import EmptyState from '../components/common/EmptyState'
 import ErrorState from '../components/common/ErrorState'
@@ -20,6 +20,8 @@ function formatProjectDate(value: string): string {
 }
 
 function ProjectsPage() {
+  const location = useLocation()
+  const successMessage = (location.state as { successMessage?: string } | null)?.successMessage ?? null
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,6 +61,8 @@ function ProjectsPage() {
           + Create Project
         </Link>
       </div>
+
+      {successMessage ? <div className="success-banner">{successMessage}</div> : null}
 
       {loading ? (
         <LoadingState message="Loading projects..." />
@@ -107,6 +111,3 @@ function ProjectsPage() {
 }
 
 export default ProjectsPage
-
-
-

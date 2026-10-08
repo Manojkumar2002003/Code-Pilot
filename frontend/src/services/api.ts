@@ -41,6 +41,12 @@ export type ProjectCreateRequest = {
   description?: string | null
 }
 
+export type ProjectUpdateRequest = {
+  name?: string
+  description?: string | null
+  status?: ProjectStatus
+}
+
 export type Project = {
   id: string
   name: string
@@ -159,6 +165,19 @@ export async function getProject(projectId: string): Promise<Project> {
   return request<Project>(`/api/projects/${projectId}`)
 }
 
+export async function updateProject(projectId: string, project: ProjectUpdateRequest): Promise<Project> {
+  return request<Project>(`/api/projects/${projectId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(project),
+  })
+}
+
+export async function deleteProject(projectId: string): Promise<void> {
+  await request<void>(`/api/projects/${projectId}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>('/api/health')
 }
@@ -168,4 +187,3 @@ export async function getDependencyHealth(): Promise<SystemHealthResponse> {
 }
 
 export { API_BASE_URL }
-
