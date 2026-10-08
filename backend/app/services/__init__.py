@@ -1,3 +1,3 @@
-from app.services.health_service import DependencyHealthResponse, DependencyStatus, get_dependency_health
+from app.services.project import ProjectNotFoundError, ProjectService
 
-__all__ = ["DependencyHealthResponse", "DependencyStatus", "get_dependency_health"]
+__all__ = ['ProjectNotFoundError', 'ProjectService']
