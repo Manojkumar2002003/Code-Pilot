@@ -151,6 +151,10 @@ export async function createProject(project: ProjectCreateRequest): Promise<Proj
   })
 }
 
+export async function getProjects(): Promise<Project[]> {
+  return request<Project[]>('/api/projects')
+}
+
 export async function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>('/api/health')
 }
@@ -160,3 +164,4 @@ export async function getDependencyHealth(): Promise<SystemHealthResponse> {
 }
 
 export { API_BASE_URL }
+
