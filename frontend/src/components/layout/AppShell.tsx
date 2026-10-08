@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Header from './Header'
 import Sidebar from './Sidebar'
 import DashboardPage from '../../pages/Dashboard'
+import CreateProjectPage from '../../pages/CreateProjectPage'
 import ProjectsPage from '../../pages/Projects'
 import KnowledgePage from '../../pages/Knowledge'
 import SettingsPage from '../../pages/Settings'
@@ -19,6 +20,7 @@ function AppShell() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/projects/new" element={<CreateProjectPage />} />
             <Route path="/knowledge" element={<KnowledgePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
