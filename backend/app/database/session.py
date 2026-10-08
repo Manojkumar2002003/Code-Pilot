@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 from app.database.base import Base
+from app.models import Project  # noqa: F401
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -51,6 +52,7 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, expi
 def init_db() -> None:
     data_dir = PROJECT_ROOT / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
+    Base.metadata.create_all(bind=engine)
 
     with engine.connect() as connection:
         connection.execute(text("SELECT 1"))
@@ -83,3 +85,5 @@ __all__ = [
     "check_database_connection",
     "get_db",
 ]
+
+

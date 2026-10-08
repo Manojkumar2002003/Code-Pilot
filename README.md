@@ -440,3 +440,4 @@ A new developer should follow this sequence:
 git add .
 git commit -m "docs: complete sprint 0 documentation"
 ```
+
