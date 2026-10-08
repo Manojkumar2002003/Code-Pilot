@@ -18,6 +18,10 @@ Sprint 0 establishes the application foundation.
 - Standard loading, error, and empty UI states
 - Local development workflow for Windows and Unix-like systems
 
+### Data model and schema separation
+- SQLAlchemy `Project` model: persistence layer and database representation
+- Pydantic `ProjectCreate` / `ProjectUpdate` / `ProjectResponse`: API contract and validation layer
+- Project status is normalized to the canonical `active` / `archived` enum values
 ### Planned capabilities
 - Project creation and editing workflows
 - LLM integration
@@ -440,4 +444,5 @@ A new developer should follow this sequence:
 git add .
 git commit -m "docs: complete sprint 0 documentation"
 ```
+
 
