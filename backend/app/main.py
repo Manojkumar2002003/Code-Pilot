@@ -7,9 +7,11 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
+from app.api.projects import router as project_router
 from app.core.config import get_settings
 from app.database import init_db
 from app.services.health_service import DependencyHealthResponse, get_dependency_health
+from app.services.project import ProjectNotFoundError
 
 
 class HealthResponse(BaseModel):
@@ -36,6 +38,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(project_router, prefix=settings.api_prefix)
+
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
@@ -43,6 +47,14 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     return JSONResponse(
         status_code=exc.status_code,
         content=build_error_payload("HTTP_ERROR", message),
+    )
+
+
+@app.exception_handler(ProjectNotFoundError)
+async def project_not_found_exception_handler(request: Request, exc: ProjectNotFoundError) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=build_error_payload("PROJECT_NOT_FOUND", str(exc)),
     )
 
 
