@@ -1,186 +1,342 @@
 # CodePilot
 
-CodePilot is a local-first, human-supervised multi-agent AI software engineering platform designed to take software requirements through analysis, architecture, planning, development, testing, review, and security validation.
+CodePilot is a local-first, human-supervised AI software engineering platform designed to assist developers throughout the software development lifecycle.
 
-This repository currently contains the foundation for that platform: a working React frontend, a FastAPI backend, local configuration, SQLite persistence, health checks, and basic developer experience tooling.
+The repository currently contains the implemented foundation for the platform and the first complete project-management vertical slice through Sprint 1.10. Autonomous agent orchestration, multi-agent execution, and other advanced AI runtime features are planned future work and are not yet implemented in this codebase.
 
-## Current Status
+## Current status
 
-Sprint 0 establishes the application foundation.
+The project is currently in the Sprint 1 project-management phase. Sprint 0 established the application foundation, and Sprint 1 establishes the first end-to-end project lifecycle: create, persist, read, update, delete, and navigate projects.
 
-### Current capabilities
-- React + TypeScript frontend shell
-- FastAPI backend application
-- Frontend to backend connectivity
-- Environment configuration through .env files
-- SQLite local database setup with SQLAlchemy
-- Health endpoints and system status page
-- Standard loading, error, and empty UI states
-- Local development workflow for Windows and Unix-like systems
+### Currently implemented
+- React + TypeScript frontend with Vite
+- FastAPI backend with Python
+- Local SQLite persistence through SQLAlchemy
+- Project data model, validation, repository, and service layers
+- Project CRUD API endpoints
+- Project create, list, details, edit, and delete pages
+- Project navigation and route flow
+- Local health and dependency status endpoints
+- Centralized frontend API client
+- Loading, error, empty, and not-found UI states
+- Local developer environment configuration
 
-### Data model and schema separation
-- SQLAlchemy `Project` model: persistence layer and database representation
-- Pydantic `ProjectCreate` / `ProjectUpdate` / `ProjectResponse`: API contract and validation layer
-- Project status is normalized to the canonical `active` / `archived` enum values
-### Planned capabilities
-- Project creation and editing workflows
-- LLM integration
-- Gemini or Ollama-based agent orchestration
-- LangGraph workflows
+### Planned / future capabilities
+- Requirement analysis and planning agents
+- Architecture and design agents
+- Developer and QA automation agents
+- LangGraph orchestration
+- LLM provider abstraction
 - RAG and vector search
-- Git-backed project tools
+- Git integration
 - Docker sandbox execution
-- QA and security agents
-- Production deployment architecture
+- Human-in-the-loop review and approval flows
+- Production deployment and observability infrastructure
 
-## Current Architecture
+## Sprint 0 — application foundation
+
+Sprint 0 established the base platform architecture and developer workflow.
+
+### Included foundation work
+- Frontend application shell and layout
+- Sidebar and header layout
+- Backend FastAPI application startup and routing
+- Local configuration with environment variables
+- SQLite and SQLAlchemy database foundation
+- Health and dependency checks
+- Local system status in the frontend
+- Error, loading, and empty state handling
+- Local development setup and documentation
+
+### Architecture snapshot
 
 ```text
-                    CodePilot
-                       │
-             ┌─────────┴─────────┐
-             │                   │
-       React Frontend       FastAPI Backend
-             │                   │
-             │ HTTP              │
-             └─────────┬─────────┘
-                       │
-                Configuration
-                       │
-                  SQLAlchemy
-                       │
-                     SQLite
-                       │
-              data/codepilot.db
+React + TypeScript + Vite
+          |
+          v
+       FastAPI
+          |
+          v
+     SQLAlchemy
+          |
+          v
+       SQLite
 ```
 
-### Component responsibilities
-- React Frontend: UI shell, navigation, status page, developer-facing screens
-- FastAPI Backend: HTTP API and application entrypoint
-- Configuration: centralized settings for app name, environment, port, database URL
-- SQLAlchemy: database abstraction layer for local SQLite use
-- SQLite: local persistence for current development workflow
+## Sprint 1 — project management foundation
 
-## Planned Architecture
+Sprint 1 establishes the first complete vertical slice of CodePilot: project creation, persistence, retrieval, viewing, updating, deletion, and navigation.
+
+### Feature status
+
+| Feature | Description | Status |
+| --- | --- | --- |
+| S1.1 | Project Data Model | Complete |
+| S1.2 | Project Schemas & Validation | Complete |
+| S1.3 | Project Repository / Data Access | Complete |
+| S1.4 | Project Service Layer | Complete |
+| S1.5 | Project API | Complete |
+| S1.6 | Create Project UI | Complete |
+| S1.7 | Project List UI | Complete |
+| S1.8 | Project Details UI | Complete |
+| S1.9 | Project Update & Delete UI | Complete |
+| S1.10 | Project Navigation & Routing | Complete |
+
+## Current Sprint 1 architecture
+
+```text
+                     User
+                      |
+                      v
+             React Frontend
+                      |
+             React Router + AppShell
+                      |
+           Project Pages / Components
+                      |
+                  API Client
+                      |
+                    HTTP
+                      |
+             FastAPI Backend
+                      |
+                 API Router
+                      |
+              Project Service
+                      |
+             Project Repository
+                      |
+                SQLAlchemy ORM
+                      |
+                    SQLite
+```
+
+### Responsibility of each layer
+- React frontend: user-facing project screens and navigation
+- API client: centralized fetch logic for project requests
+- FastAPI backend: request handling, validation, and responses
+- Project service: project business logic and not-found checks
+- Project repository: database operations and CRUD behavior
+- SQLAlchemy: ORM mapping and persistence behavior
+- SQLite: local developer database storage
+
+## Project data flow
+
+### Create project
 
 ```text
 User
- ↓
-React
- ↓
-FastAPI
- ↓
-LangGraph Orchestrator
- ↓
-Requirement Analyst
- ↓
-Architect
- ↓
-Planner
- ↓
-Developer
- ↓
-QA
- ↓
-Code Review
- ↓
-Security
+  -> Create Project UI
+  -> POST /api/projects
+  -> Project Service
+  -> Project Repository
+  -> SQLAlchemy
+  -> SQLite
 ```
 
-This architecture is planned for future Sprints and is not currently implemented in this repository.
+### List projects
 
-## Technology Stack
+```text
+User
+  -> Projects page
+  -> GET /api/projects
+  -> FastAPI
+  -> Service
+  -> Repository
+  -> SQLite
+  -> React UI
+```
 
-### Current stack
-- Frontend: React, TypeScript, Vite
-- Backend: Python, FastAPI, Pydantic, SQLAlchemy
-- Database: SQLite
-- Testing: pytest for backend,
-- Tooling: npm for frontend package management
+### Update project
 
-### Planned technologies
-- LangGraph
-- LLM providers
-- Vector databases such as Qdrant
-- Sandbox and containerized execution
-- Git-aware project workflows
-- Production deployment infrastructure
+```text
+User
+  -> Edit Project page
+  -> PATCH /api/projects/{project_id}
+  -> Service
+  -> Repository
+  -> SQLite
+```
 
-## Project Structure
+### Delete project
+
+```text
+User
+  -> Details page delete flow
+  -> DELETE /api/projects/{project_id}
+  -> Service
+  -> Repository
+  -> SQLite
+```
+
+## Project API
+
+The project API is implemented in the backend and currently exposes the following endpoints.
+
+### Health endpoints
+- GET `/` — backend root response
+- GET `/api/health` — backend service health status
+- GET `/api/health/dependencies` — backend and database dependency status
+
+### Project endpoints
+- POST `/api/projects` — create a project
+- GET `/api/projects` — list all projects
+- GET `/api/projects/{project_id}` — fetch a single project by ID
+- PATCH `/api/projects/{project_id}` — partially update a project
+- DELETE `/api/projects/{project_id}` — delete a project
+
+The project request and response model uses the existing Pydantic validation rules:
+- project names are required and trimmed
+- empty or whitespace-only names are rejected
+- descriptions are optional and trimmed
+- status values are limited to `active` and `archived`
+
+## Frontend routes
+
+The frontend uses the active route set defined in the application shell:
+
+- `/` — dashboard
+- `/projects` — project list
+- `/projects/new` — create project
+- `/projects/:projectId` — project details
+- `/projects/:projectId/edit` — edit project
+- `/knowledge` — knowledge page
+- `/settings` — settings page
+
+Unknown routes render a not-found page instead of redirecting silently.
+
+## Project capabilities
+
+### Project management
+- Create a project
+- Persist projects in SQLite
+- List all projects
+- View project details
+- Update project details
+- Change project status between active and archived
+- Delete projects
+- Navigate between project screens
+- Display loading, error, empty, and not-found states
+
+## Technology stack
+
+### Frontend
+- React
+- TypeScript
+- Vite
+- React Router
+
+### Backend
+- Python
+- FastAPI
+- Pydantic
+- SQLAlchemy
+
+### Database
+- SQLite
+
+### Local validation
+- pytest for backend testing
+- Vitest for frontend testing
+
+## Project structure
 
 ```text
 CodePilot/
 ├── backend/
 │   ├── app/
+│   │   ├── api/
 │   │   ├── core/
 │   │   ├── database/
+│   │   ├── models/
+│   │   ├── repositories/
+│   │   ├── schemas/
 │   │   ├── services/
 │   │   └── main.py
 │   ├── tests/
 │   ├── .venv/
+│   ├── pytest.ini
 │   ├── requirements.txt
-│   └── pytest.ini
+│   └── ...
 ├── frontend/
 │   ├── src/
 │   ├── public/
 │   ├── package.json
 │   ├── vite.config.ts
-│   └── tsconfig*.json
-├── data/
-│   └── codepilot.db
+│   ├── tsconfig.json
+│   └── ...
 ├── docs/
 │   ├── architecture.md
 │   ├── development.md
 │   └── roadmap.md
+├── data/
 ├── .env
 ├── .env.example
 ├── .gitignore
 ├── README.md
-└── .vscode/
+└── .git
 ```
 
-### Important directories
-- backend/app: FastAPI application code and configuration
-- backend/tests: backend regression and API tests
-- frontend/src: React application source
-- data: local SQLite database files for development
-- docs: project documentation and developer guidance
+## Local development
 
-## Prerequisites
+### Backend setup
 
-Before starting, install:
-- Python 3.10+
-- Node.js 18+ or an equivalent LTS version
-- npm
-- Git
-
-Verify installation:
+From the project root:
 
 ```bash
-python --version
-node --version
-npm --version
-git --version
+cd backend
+python -m venv .venv
 ```
 
-## Environment Configuration
+Activate the environment:
 
-This project uses local environment configuration for developer setup.
-
-### Backend configuration
-Copy the example environment file:
-
-```bash
-cp .env.example .env
-```
-
-On Windows PowerShell:
-
+#### Windows PowerShell
 ```powershell
-Copy-Item .env.example .env
+.\.venv\Scripts\Activate.ps1
 ```
 
-The repository includes a working example:
+#### Windows Command Prompt
+```cmd
+.venv\Scripts\activate.bat
+```
+
+#### macOS / Linux
+```bash
+source .venv/bin/activate
+```
+
+Install Python dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Start the backend:
+
+```bash
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+### Frontend setup
+
+From the project root:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Local URLs used by the current project:
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8000
+
+## Environment configuration
+
+The project uses local environment files for developer setup.
+
+### Backend
+The repository includes `.env.example` with the current local defaults:
 
 ```env
 APP_NAME=CodePilot API
@@ -193,259 +349,69 @@ DATABASE_URL=sqlite:///./data/codepilot.db
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-Important notes:
-- `.env` is local developer configuration and should not be committed.
-- `VITE_*` variables are exposed to the browser and must never contain secrets.
-- If you want to override the frontend API URL, create a separate `frontend/.env` file with `VITE_API_BASE_URL=http://localhost:8000`.
+### Frontend
+The frontend reads `VITE_API_BASE_URL` for the backend base URL. If a local override is needed, create a frontend-specific `.env` file in `frontend/`.
 
-## Backend Setup
+Do not commit local developer secrets or environment files with credentials.
 
-From the project root:
+## Local database
 
-```bash
-cd backend
-python -m venv .venv
-```
-
-Activate the virtual environment:
-
-### Windows PowerShell
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-### Windows Command Prompt
-```cmd
-.venv\Scripts\activate.bat
-```
-
-### macOS/Linux
-```bash
-source .venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Frontend Setup
-
-From the project root:
-
-```bash
-cd frontend
-npm install
-```
-
-Start the Vite development server:
-
-```bash
-npm run dev
-```
-
-Expected local URL:
-- http://localhost:5173
-
-## Backend Startup
-
-From the backend directory with the virtual environment active:
-
-```bash
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Expected API base URL:
-- http://localhost:8000
-
-The backend exposes the following available routes:
-- GET /
-- GET /api/health
-- GET /api/health/dependencies
-
-## Database
-
-The current project uses SQLite for local development.
+The current implementation uses SQLite for local-first persistence.
 
 - Database file: `data/codepilot.db`
-- Database layer: SQLAlchemy
-- File generation: auto-created by the app when the database is initialized
-- Local runtime data: tracked in `.gitignore`
+- ORM: SQLAlchemy
+- Access layer: repository and service pattern
+- Persistence model: project data is stored locally on disk
 
-This is a local-first foundation. The current architecture intentionally keeps the database simple while future Sprints decide how project data and agent state should evolve.
+This is a local development database, not a production deployment database.
 
-## API
+## Testing and validation
 
-### GET /api/health
-Purpose: confirm the backend is running and responding.
+The repository includes local validation for the current implementation.
 
-Example response:
-
-```json
-{
-  "status": "ok",
-  "service": "codepilot-api"
-}
-```
-
-### GET /api/health/dependencies
-Purpose: report backend and database health for the current local environment.
-
-Example response:
-
-```json
-{
-  "status": "healthy",
-  "environment": "development",
-  "service": "codepilot-api",
-  "dependencies": {
-    "backend": { "status": "healthy", "type": "fastapi" },
-    "database": { "status": "healthy", "type": "sqlite" }
-  }
-}
-```
-
-## System Status
-
-The React application includes a Settings page that shows the current local system status.
-
-It reports:
-- Backend status
-- Database status
-- Environment status
-- Last checked time
-
-The page supports manual refresh and displays loading, error, and empty states.
-
-## Testing
-
-### Backend tests
-From the backend directory:
-
+### Backend
 ```bash
+cd backend
 pytest
 ```
 
-The repository currently includes backend API and dependency-health checks in `backend/tests/test_main.py`.
-
-### Frontend tests
-No frontend test framework is currently configured in this project. Frontend validation is performed through `npm run build`.
-
-## Troubleshooting
-
-### Backend does not start
-Check:
-- Python virtual environment is active
-- `requirements.txt` has been installed
-- the `.env` file exists and is valid
-- port 8000 is not already in use
-
-### Frontend cannot connect to backend
-Check:
-- backend is running on port 8000
-- `VITE_API_BASE_URL` matches the backend URL
-- CORS rules are enabled in the backend app
-- the frontend is using the local dev server port 5173
-
-### Database issue
-Check:
-- the `data` directory exists
-- `DATABASE_URL` points to the expected SQLite file
-- the database file is writable by the current user
-
-### Dependency installation issue
-If setup is inconsistent, recreate the backend environment:
-
+### Frontend
 ```bash
-cd backend
-rm -rf .venv
-python -m venv .venv
-source .venv/bin/activate  # or .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+cd frontend
+npm run test
 ```
 
-## Developer Workflow
+This keeps the project checked against the project CRUD flow and local route behavior without introducing a broader production-ready platform stack.
 
-1. Pull the latest repository state.
-2. Create or activate the backend virtual environment.
-3. Install backend dependencies.
-4. Configure `.env` for local development.
-5. Start the backend.
-6. Configure or override the frontend API URL if needed.
-7. Install frontend dependencies.
-8. Start the frontend.
-9. Run backend tests and frontend build checks.
-10. Implement the next feature incrementally.
-11. Review changes and commit them.
+## Roadmap
 
-## Development Principles
+### Current documented position
+- Sprint 0: foundation complete
+- Sprint 1: project management foundation complete through S1.10
 
-### Incremental development
-Features are added in small, testable increments rather than large rewrites.
+### Next milestone
+The next area of development is the broader project workspace stage, where the project will expand from a project CRUD foundation into a richer engineering workspace.
 
-### Preserve existing architecture
-The project keeps working foundations stable while adding new capabilities.
+Potential future work includes:
+- project overview and workspace context
+- requirements and architecture views
+- task and execution tracking
+- human review and approval flows
+- execution observability and history
+- deeper project lifecycle management
 
-### Reuse existing services/components
-New features should integrate with the current backend and frontend patterns instead of duplicating logic.
+These are future capabilities and are not part of the current implementation.
 
-### Local-first
-The current system is designed to work reliably on a local developer machine before production infrastructure is introduced.
+## Development principles
 
-### Human-supervised AI
-Future agents should operate under explicit supervision and should not execute unrestricted actions without review.
+- Keep the foundation stable while adding new product slices incrementally.
+- Preserve the existing layered architecture: model, schema, repository, service, API, UI.
+- Prefer local-first development over production infrastructure.
+- Keep human review and validation central to future AI workflows.
+- Do not introduce autonomous execution capabilities before the platform foundation is complete.
 
-### Security by design
-As agent-based workflows grow, sandboxing, validation, and review gates should be introduced deliberately.
+## Summary
 
-## Sprint 0 Completion Checklist
+CodePilot currently delivers a working local-first foundation and the first complete project-management slice: the backend, database, validation, project API, project UI, and routing flow are implemented and working together.
 
-Sprint 0 — Project Foundation
-
-- [x] Frontend created
-- [x] Backend created
-- [x] Application shell
-- [x] Frontend/backend connectivity
-- [x] Configuration system
-- [x] SQLite foundation
-- [x] System health
-- [x] Error/loading handling
-- [x] Documentation
-
-Status: Sprint 0 — Project Foundation = COMPLETE
-
-## Documentation
-
-- Architecture overview: [docs/architecture.md](docs/architecture.md)
-- Development guide: [docs/development.md](docs/development.md)
-- Roadmap: [docs/roadmap.md](docs/roadmap.md)
-
-## Clean Setup Verification
-
-A new developer should follow this sequence:
-
-1. Clone the repository.
-2. Create the backend `.env` from `.env.example`.
-3. Create and activate the backend virtual environment.
-4. Install backend dependencies with `pip install -r requirements.txt`.
-5. Start the backend with `uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`.
-6. Create a frontend `.env` if you need a custom `VITE_API_BASE_URL`.
-7. Install frontend dependencies with `npm install`.
-8. Start the frontend with `npm run dev`.
-9. Open http://localhost:5173.
-10. Check system status from the app and verify backend health endpoints.
-11. Run backend tests with `pytest`.
-12. Run frontend compile validation with `npm run build`.
-
-## Commit Recommendation
-
-```bash
-git add .
-git commit -m "docs: complete sprint 0 documentation"
-```
-
-
-
-
-
+The project remains intentionally scoped to a local developer workflow while the larger AI software engineering platform vision stays clearly separated as future work.
