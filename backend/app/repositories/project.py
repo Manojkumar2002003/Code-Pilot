@@ -29,7 +29,7 @@ class ProjectRepository:
 
     def list(self) -> Sequence[Project]:
         return self.session.execute(
-            select(Project).order_by(Project.created_at.desc())
+            select(Project).order_by(Project.created_at.desc(), Project.id.desc())
         ).scalars().all()
 
     def update(self, project: Project, update_data: ProjectUpdate) -> Project:
