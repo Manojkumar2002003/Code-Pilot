@@ -6,10 +6,12 @@ import DashboardPage from '../../pages/Dashboard'
 import CreateProjectPage from '../../pages/CreateProjectPage'
 import EditProjectPage from '../../pages/EditProjectPage'
 import ProjectsPage from '../../pages/Projects'
-import ProjectDetailsPage from '../../pages/ProjectDetailsPage'
 import NotFoundPage from '../../pages/NotFoundPage'
 import KnowledgePage from '../../pages/Knowledge'
 import SettingsPage from '../../pages/Settings'
+import ProjectWorkspaceLayout from '../workspace/ProjectWorkspaceLayout'
+import ProjectWorkspaceOverviewPage from '../../pages/ProjectWorkspaceOverviewPage'
+import ProjectWorkspacePlaceholderPage from '../../pages/ProjectWorkspacePlaceholderPage'
 
 function AppShell() {
   return (
@@ -24,7 +26,45 @@ function AppShell() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/new" element={<CreateProjectPage />} />
-            <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
+            <Route path="/projects/:projectId/*" element={<ProjectWorkspaceLayout />}>
+              <Route index element={<ProjectWorkspaceOverviewPage />} />
+              <Route
+                path="requirements"
+                element={
+                  <ProjectWorkspacePlaceholderPage
+                    title="Requirements"
+                    description="The requirements workspace for this project is planned for a future sprint."
+                  />
+                }
+              />
+              <Route
+                path="architecture"
+                element={
+                  <ProjectWorkspacePlaceholderPage
+                    title="Architecture"
+                    description="The architecture workspace for this project is planned for a future sprint."
+                  />
+                }
+              />
+              <Route
+                path="tasks"
+                element={
+                  <ProjectWorkspacePlaceholderPage
+                    title="Tasks"
+                    description="The task workspace for this project is planned for a future sprint."
+                  />
+                }
+              />
+              <Route
+                path="activity"
+                element={
+                  <ProjectWorkspacePlaceholderPage
+                    title="Activity"
+                    description="The activity workspace for this project is planned for a future sprint."
+                  />
+                }
+              />
+            </Route>
             <Route path="/projects/:projectId/edit" element={<EditProjectPage />} />
             <Route path="/knowledge" element={<KnowledgePage />} />
             <Route path="/settings" element={<SettingsPage />} />
@@ -37,4 +77,3 @@ function AppShell() {
 }
 
 export default AppShell
-
