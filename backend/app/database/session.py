@@ -3,13 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Generator
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 from app.database.base import Base
-from app.models import Project  # noqa: F401
+from app.models import Project, Requirement  # noqa: F401
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -46,6 +46,16 @@ def create_database_engine(database_url: str | None = None) -> Engine:
 
 
 engine = create_database_engine()
+
+
+@event.listens_for(engine, "connect")
+def _enable_sqlite_foreign_keys(dbapi_connection, connection_record):
+    if dbapi_connection.__class__.__module__.endswith("sqlite3"):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, expire_on_commit=False)
 
 
@@ -85,5 +95,4 @@ __all__ = [
     "check_database_connection",
     "get_db",
 ]
-
 
