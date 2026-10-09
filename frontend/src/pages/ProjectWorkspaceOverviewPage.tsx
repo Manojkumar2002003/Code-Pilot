@@ -20,10 +20,30 @@ function formatProjectDate(value: string): string {
 }
 
 const workspaceSummaryCards = [
-  { label: 'Requirements', state: 'Not started' },
-  { label: 'Architecture', state: 'Coming soon' },
-  { label: 'Tasks', state: 'Not available yet' },
-  { label: 'Activity', state: 'Coming soon' },
+  {
+    label: 'Requirements',
+    description: 'Store and organize the functional and non-functional requirements for this project.',
+    status: 'Coming soon',
+    route: 'requirements',
+  },
+  {
+    label: 'Architecture',
+    description: 'Document the system components and their relationships.',
+    status: 'Coming soon',
+    route: 'architecture',
+  },
+  {
+    label: 'Tasks',
+    description: 'Organize the implementation work associated with the project.',
+    status: 'Coming soon',
+    route: 'tasks',
+  },
+  {
+    label: 'Activity',
+    description: 'View project changes and future agent execution history.',
+    status: 'Coming soon',
+    route: 'activity',
+  },
 ]
 
 function ProjectWorkspaceOverviewPage() {
@@ -62,17 +82,29 @@ function ProjectWorkspaceOverviewPage() {
     }
   }
 
-  const projectDescription = project.description?.trim()
+  const projectDescription = project.description?.trim() || 'No description provided.'
 
   return (
     <div className="workspace-overview">
-      <div className="workspace-summary-grid">
-        {workspaceSummaryCards.map((card) => (
-          <article key={card.label} className="workspace-summary-card">
-            <span className="workspace-summary-label">{card.label}</span>
-            <strong>{card.state}</strong>
-          </article>
-        ))}
+      <div className="workspace-overview-header">
+        <div className="workspace-header-title">
+          <p className="eyebrow page-eyebrow">Project overview</p>
+          <h1>{project.name}</h1>
+        </div>
+
+        <div className="project-action-row workspace-overview-actions">
+          <Link to={`/projects/${project.id}/edit`} className="primary-button">
+            Edit Project
+          </Link>
+          <button
+            type="button"
+            className="danger-button"
+            onClick={() => setDeleteRequested(true)}
+            aria-label={`Delete ${project.name}`}
+          >
+            Delete Project
+          </button>
+        </div>
       </div>
 
       {deleteError ? (
@@ -80,20 +112,6 @@ function ProjectWorkspaceOverviewPage() {
           {deleteError}
         </div>
       ) : null}
-
-      <div className="project-action-row">
-        <Link to={`/projects/${project.id}/edit`} className="primary-button">
-          Edit Project
-        </Link>
-        <button
-          type="button"
-          className="danger-button"
-          onClick={() => setDeleteRequested(true)}
-          aria-label={`Delete ${project.name}`}
-        >
-          Delete Project
-        </button>
-      </div>
 
       {deleteRequested ? (
         <div className="state-panel delete-confirmation">
@@ -114,25 +132,18 @@ function ProjectWorkspaceOverviewPage() {
       ) : null}
 
       <article className="project-details-card workspace-details-card">
-        <div className="project-details-header-block">
-          <p className="eyebrow page-eyebrow">Overview</p>
-          <h1>{project.name}</h1>
-          <span className={`project-badge project-badge-${project.status}`}>
-            {project.status}
-          </span>
+        <div className="project-details-header-block workspace-overview-topline">
+          <div className="workspace-overview-status-row">
+            <span className={`project-badge project-badge-${project.status}`}>
+              {project.status}
+            </span>
+          </div>
         </div>
 
-        {projectDescription ? (
-          <div className="project-details-section">
-            <h3>Description</h3>
-            <p>{projectDescription}</p>
-          </div>
-        ) : (
-          <div className="project-details-section muted-section">
-            <h3>Description</h3>
-            <p>No description provided.</p>
-          </div>
-        )}
+        <div className="project-details-section">
+          <h3>Description</h3>
+          <p>{projectDescription}</p>
+        </div>
 
         <div className="project-details-meta-grid">
           <div className="project-details-meta-item">
@@ -153,6 +164,27 @@ function ProjectWorkspaceOverviewPage() {
           </div>
         </div>
       </article>
+
+      <section className="workspace-summary-section" aria-label="Workspace summary">
+        <div className="workspace-summary-header">
+          <p className="eyebrow page-eyebrow">Workspace areas</p>
+          <h2>Project workspace</h2>
+        </div>
+
+        <div className="workspace-summary-grid">
+          {workspaceSummaryCards.map((card) => (
+            <Link key={card.label} to={`/projects/${project.id}/${card.route}`} className="workspace-summary-card-link">
+              <article className="workspace-summary-card">
+                <div className="workspace-summary-card-header">
+                  <span className="workspace-summary-label">{card.label}</span>
+                  <span className="workspace-summary-status">{card.status}</span>
+                </div>
+                <p>{card.description}</p>
+              </article>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }
