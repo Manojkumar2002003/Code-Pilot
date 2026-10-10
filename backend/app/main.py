@@ -7,10 +7,16 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
+from app.api.architectures import router as architecture_router
 from app.api.projects import router as project_router
 from app.api.requirements import router as requirement_router
 from app.core.config import get_settings
 from app.database import init_db
+from app.services.architecture import (
+    ArchitectureAlreadyExistsError,
+    ArchitectureNotFoundError,
+    ArchitectureProjectMismatchError,
+)
 from app.services.health_service import DependencyHealthResponse, get_dependency_health
 from app.services.project import ProjectNotFoundError
 from app.services.requirement import RequirementNotFoundError, RequirementProjectMismatchError
@@ -42,6 +48,7 @@ app.add_middleware(
 
 app.include_router(project_router, prefix=settings.api_prefix)
 app.include_router(requirement_router, prefix=settings.api_prefix)
+app.include_router(architecture_router, prefix=settings.api_prefix)
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -74,6 +81,30 @@ async def requirement_project_mismatch_exception_handler(request: Request, exc: 
     return JSONResponse(
         status_code=404,
         content=build_error_payload('REQUIREMENT_PROJECT_MISMATCH', str(exc)),
+    )
+
+
+@app.exception_handler(ArchitectureNotFoundError)
+async def architecture_not_found_exception_handler(request: Request, exc: ArchitectureNotFoundError) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=build_error_payload('ARCHITECTURE_NOT_FOUND', str(exc)),
+    )
+
+
+@app.exception_handler(ArchitectureAlreadyExistsError)
+async def architecture_already_exists_exception_handler(request: Request, exc: ArchitectureAlreadyExistsError) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content=build_error_payload('ARCHITECTURE_ALREADY_EXISTS', str(exc)),
+    )
+
+
+@app.exception_handler(ArchitectureProjectMismatchError)
+async def architecture_project_mismatch_exception_handler(request: Request, exc: ArchitectureProjectMismatchError) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=build_error_payload('ARCHITECTURE_PROJECT_MISMATCH', str(exc)),
     )
 
 

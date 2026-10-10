@@ -85,6 +85,18 @@ class ArchitectureService:
         architecture = self._require_architecture_for_project(project_id, architecture_id)
         return self.repository.delete(architecture)
 
+    def update_architecture_by_project(
+        self,
+        project_id: str,
+        architecture_data: ArchitectureUpdate,
+    ) -> Architecture:
+        architecture = self.get_architecture_by_project(project_id)
+        return self.repository.update(architecture, architecture_data)
+
+    def delete_architecture_by_project(self, project_id: str) -> bool:
+        architecture = self.get_architecture_by_project(project_id)
+        return self.repository.delete(architecture)
+
 
 __all__ = [
     "ArchitectureAlreadyExistsError",
