@@ -23,7 +23,7 @@ const workspaceSummaryCards = [
   {
     label: 'Requirements',
     description: 'Store and organize the functional and non-functional requirements for this project.',
-    status: 'Coming soon',
+    status: 'Live',
     route: 'requirements',
   },
   {

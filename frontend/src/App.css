@@ -993,5 +993,318 @@ h2, h3 {
 }
 
 
+/* ── Requirements ── */
+
+.requirements-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.requirements-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.requirements-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.requirements-header-text h2 {
+  margin: 0;
+}
+
+.requirements-subtitle {
+  margin: 0.25rem 0 0;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.requirement-create-button {
+  white-space: nowrap;
+  align-self: flex-end;
+}
+
+.requirement-delete-confirmation {
+  margin-bottom: 0.25rem;
+}
+
+/* ── Requirement List ── */
+
+.requirement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.requirement-card {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 1rem;
+  padding: 1.25rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  transition: border-color 0.2s ease;
+}
+
+.requirement-card:hover {
+  border-color: rgba(125, 211, 252, 0.24);
+}
+
+.requirement-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.requirement-card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.requirement-card-title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #f8fafc;
+}
+
+.requirement-card-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.requirement-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+/* Priority badges */
+.requirement-badge-priority-low {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+}
+
+.requirement-badge-priority-medium {
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+}
+
+.requirement-badge-priority-high {
+  background: rgba(251, 191, 36, 0.14);
+  color: #fcd34d;
+}
+
+.requirement-badge-priority-critical {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fca5a5;
+}
+
+/* Status badges */
+.requirement-badge-status-draft {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.requirement-badge-status-approved {
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.requirement-badge-status-rejected {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.requirement-card-description {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.requirement-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.requirement-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.requirement-meta-tag {
+  color: #7dd3fc;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.requirement-meta-date {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.requirement-card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.requirement-action-button {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+/* ── Requirement Form Modal ── */
+
+.requirement-form-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.requirement-form-modal {
+  background: #111827;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+.requirement-form-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.requirement-form-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.requirement-form-close-button {
+  background: none;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.35rem 0.55rem;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.requirement-form-close-button:hover {
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.requirement-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+/* Select styling */
+.field-group select {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 0.75rem;
+  color: #f8fafc;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  padding-right: 2.5rem;
+}
+
+.field-group select:focus {
+  outline: 2px solid rgba(96, 165, 250, 0.6);
+  outline-offset: 1px;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 640px) {
+  .requirements-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .requirement-create-button {
+    width: 100%;
+  }
+
+  .requirement-card-title-row {
+    flex-direction: column;
+  }
+
+  .requirement-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .requirement-card-actions {
+    width: 100%;
+  }
+
+  .requirement-card-actions .secondary-button,
+  .requirement-card-actions .danger-button {
+    flex: 1;
+  }
+
+  .requirement-form-row {
+    grid-template-columns: 1fr;
+  }
+}
 
 

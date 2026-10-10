@@ -56,9 +56,42 @@ export type Project = {
   updated_at: string
 }
 
+export type RequirementType = 'functional' | 'non_functional'
+
+export type RequirementPriority = 'low' | 'medium' | 'high' | 'critical'
+
+export type RequirementStatus = 'draft' | 'approved' | 'rejected'
+
+export type Requirement = {
+  id: string
+  project_id: string
+  title: string
+  description: string
+  type: RequirementType
+  priority: RequirementPriority
+  status: RequirementStatus
+  created_at: string
+  updated_at: string
+}
+
+export type RequirementCreateRequest = {
+  title: string
+  description: string
+  type?: RequirementType
+  priority?: RequirementPriority
+}
+
+export type RequirementUpdateRequest = {
+  title?: string
+  description?: string
+  type?: RequirementType
+  priority?: RequirementPriority
+  status?: RequirementStatus
+}
+
 const API_BASE_URL = apiBaseUrl
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     const headers = new Headers(init.headers ?? {})
     headers.set('Accept', 'application/json')

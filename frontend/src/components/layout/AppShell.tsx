@@ -12,6 +12,7 @@ import SettingsPage from '../../pages/Settings'
 import ProjectWorkspaceLayout from '../workspace/ProjectWorkspaceLayout'
 import ProjectWorkspaceOverviewPage from '../../pages/ProjectWorkspaceOverviewPage'
 import ProjectWorkspacePlaceholderPage from '../../pages/ProjectWorkspacePlaceholderPage'
+import RequirementsPage from '../../pages/RequirementsPage'
 
 function AppShell() {
   return (
@@ -28,15 +29,7 @@ function AppShell() {
             <Route path="/projects/new" element={<CreateProjectPage />} />
             <Route path="/projects/:projectId/*" element={<ProjectWorkspaceLayout />}>
               <Route index element={<ProjectWorkspaceOverviewPage />} />
-              <Route
-                path="requirements"
-                element={
-                  <ProjectWorkspacePlaceholderPage
-                    title="Requirements"
-                    description="The requirements workspace for this project is planned for a future sprint."
-                  />
-                }
-              />
+              <Route path="requirements" element={<RequirementsPage />} />
               <Route
                 path="architecture"
                 element={
