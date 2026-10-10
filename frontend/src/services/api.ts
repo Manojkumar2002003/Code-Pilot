@@ -89,6 +89,28 @@ export type RequirementUpdateRequest = {
   status?: RequirementStatus
 }
 
+export type Architecture = {
+  id: string
+  project_id: string
+  name: string
+  description?: string | null
+  content?: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}
+
+export type ArchitectureCreateRequest = {
+  name: string
+  description?: string | null
+  content?: Record<string, unknown> | null
+}
+
+export type ArchitectureUpdateRequest = {
+  name?: string
+  description?: string | null
+  content?: Record<string, unknown> | null
+}
+
 const API_BASE_URL = apiBaseUrl
 
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {

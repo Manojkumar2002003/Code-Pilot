@@ -1308,3 +1308,218 @@ h2, h3 {
 }
 
 
+/* ── Architecture ── */
+
+.architecture-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.architecture-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.architecture-header-text h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+}
+
+.architecture-subtitle {
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.architecture-subtitle strong {
+  color: var(--text-primary, #f1f5f9);
+}
+
+.architecture-header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Architecture Card ── */
+
+.architecture-card {
+  background: var(--bg-card, #111827);
+  border: 1px solid var(--border-color, #1f2937);
+  border-radius: var(--radius-lg, 12px);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.architecture-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-color, #1f2937);
+  padding-bottom: 1.25rem;
+}
+
+.architecture-card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.architecture-card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary, #f1f5f9);
+  margin: 0;
+}
+
+.architecture-card-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.architecture-meta-date {
+  font-size: 0.8rem;
+  color: var(--text-muted, #64748b);
+}
+
+.architecture-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.architecture-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #94a3b8);
+  margin: 0;
+}
+
+.architecture-card-description {
+  color: var(--text-primary, #e2e8f0);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.architecture-json-preview {
+  background: var(--bg-input, #0f172a);
+  border: 1px solid var(--border-color, #1f2937);
+  border-radius: var(--radius-md, 8px);
+  padding: 1rem 1.25rem;
+  margin: 0;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #38bdf8;
+}
+
+.architecture-code-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88rem;
+}
+
+.architecture-empty-content {
+  color: var(--text-muted, #64748b);
+  font-size: 0.9rem;
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Delete Confirmation ── */
+
+.architecture-delete-confirmation {
+  margin-bottom: 0.5rem;
+}
+
+/* ── Modal Form ── */
+
+.architecture-form-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+}
+
+.architecture-form-modal {
+  background: var(--bg-card, #111827);
+  border: 1px solid var(--border-color, #1f2937);
+  border-radius: var(--radius-lg, 12px);
+  width: 100%;
+  max-width: 620px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+  padding: 1.5rem 1.75rem;
+}
+
+.architecture-form-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color, #1f2937);
+}
+
+.architecture-form-modal-header h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.architecture-form-close-button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm, 4px);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.architecture-form-close-button:hover {
+  color: var(--text-primary, #f1f5f9);
+  background: var(--bg-hover, #1e293b);
+}
+
+@media (max-width: 640px) {
+  .architecture-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .architecture-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .architecture-card-title-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+
+

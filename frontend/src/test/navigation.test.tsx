@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 
 import AppShell from '../components/layout/AppShell'
 import * as api from '../services/api'
+import * as architectureService from '../services/architectureService'
 import * as requirementService from '../services/requirementService'
 
 const testProject: api.Project = {
@@ -19,6 +20,7 @@ describe('Workspace Requirements Navigation', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.spyOn(api, 'getProject').mockResolvedValue(testProject)
+    vi.spyOn(architectureService, 'getArchitecture').mockResolvedValue(null)
     vi.spyOn(requirementService, 'getRequirements').mockResolvedValue([
       {
         id: 'req-alpha-1',
@@ -74,5 +76,29 @@ describe('Workspace Requirements Navigation', () => {
 
     const reqTab = screen.getByRole('link', { name: 'Requirements' })
     expect(reqTab).not.toHaveClass('workspace-tab-active')
+  })
+
+  it('marks Architecture tab as active when on /projects/:projectId/architecture route', async () => {
+    render(
+      <MemoryRouter initialEntries={['/projects/proj-alpha/architecture']}>
+        <AppShell />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Alpha System' })).toBeInTheDocument()
+    })
+
+    const archTab = screen.getByRole('link', { name: 'Architecture' })
+    expect(archTab).toBeInTheDocument()
+    expect(archTab).toHaveClass('workspace-tab-active')
+    expect(archTab).toHaveAttribute('href', '/projects/proj-alpha/architecture')
+
+    const overviewTab = screen.getByRole('link', { name: 'Overview' })
+    expect(overviewTab).not.toHaveClass('workspace-tab-active')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: 'Project architecture' })).toBeInTheDocument()
+    })
   })
 })

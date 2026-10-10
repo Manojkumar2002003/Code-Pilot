@@ -29,7 +29,7 @@ const workspaceSummaryCards = [
   {
     label: 'Architecture',
     description: 'Document the system components and their relationships.',
-    status: 'Coming soon',
+    status: 'Live',
     route: 'architecture',
   },
   {

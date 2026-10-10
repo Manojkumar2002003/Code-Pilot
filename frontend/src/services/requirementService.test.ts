@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError } from './api'
 import {
   createRequirement,
   deleteRequirement,
