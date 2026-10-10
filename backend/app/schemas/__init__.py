@@ -1,3 +1,9 @@
+from app.schemas.architecture import (
+    ArchitectureBase,
+    ArchitectureCreate,
+    ArchitectureResponse,
+    ArchitectureUpdate,
+)
 from app.schemas.project import ProjectBase, ProjectCreate, ProjectResponse, ProjectStatus, ProjectUpdate
 from app.schemas.requirement import (
     RequirementBase,
@@ -10,6 +16,10 @@ from app.schemas.requirement import (
 )
 
 __all__ = [
+    'ArchitectureBase',
+    'ArchitectureCreate',
+    'ArchitectureResponse',
+    'ArchitectureUpdate',
     'ProjectBase',
     'ProjectCreate',
     'ProjectResponse',

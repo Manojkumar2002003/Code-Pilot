@@ -158,7 +158,7 @@ describe('requirementService', () => {
 
   describe('error handling', () => {
     it('throws ApiError with server error details on failure', async () => {
-      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok: false,
         status: 404,
         json: async () => ({
@@ -169,24 +169,22 @@ describe('requirementService', () => {
         }),
       } as Response)
 
-      await expect(getRequirement(projectId, requirementId)).rejects.toThrow(ApiError)
-      await expect(getRequirement(projectId, requirementId).catch((err: ApiError) => {
-        expect(err.status).toBe(404)
-        expect(err.message).toBe('Requirement not found.')
-        expect(err.code).toBe('NOT_FOUND')
-        throw err
-      })).rejects.toBeDefined()
+      await expect(getRequirement(projectId, requirementId)).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 404,
+        message: 'Requirement not found.',
+        code: 'NOT_FOUND',
+      })
     })
 
     it('throws ApiError on network connection failure', async () => {
-      vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
 
-      await expect(getRequirements(projectId)).rejects.toThrow(ApiError)
-      await expect(getRequirements(projectId).catch((err: ApiError) => {
-        expect(err.code).toBe('NETWORK_ERROR')
-        expect(err.status).toBeNull()
-        throw err
-      })).rejects.toBeDefined()
+      await expect(getRequirements(projectId)).rejects.toMatchObject({
+        name: 'ApiError',
+        status: null,
+        code: 'NETWORK_ERROR',
+      })
     })
   })
 })

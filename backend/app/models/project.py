@@ -3,10 +3,15 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import CheckConstraint, DateTime, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+
+if TYPE_CHECKING:
+    from app.models.architecture import Architecture
 
 
 def utc_now() -> datetime:
@@ -39,6 +44,13 @@ class Project(Base):
         nullable=False,
         default=utc_now,
         onupdate=utc_now,
+    )
+
+    architecture: Mapped[Architecture | None] = relationship(
+        "Architecture",
+        back_populates="project",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

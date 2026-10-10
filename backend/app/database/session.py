@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 from app.database.base import Base
-from app.models import Project, Requirement  # noqa: F401
+from app.models import Architecture, Project, Requirement  # noqa: F401
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
