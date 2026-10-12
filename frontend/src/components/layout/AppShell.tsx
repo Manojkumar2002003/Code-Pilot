@@ -14,6 +14,7 @@ import ProjectWorkspaceOverviewPage from '../../pages/ProjectWorkspaceOverviewPa
 import ProjectWorkspacePlaceholderPage from '../../pages/ProjectWorkspacePlaceholderPage'
 import RequirementsPage from '../../pages/RequirementsPage'
 import ArchitecturePage from '../../pages/ArchitecturePage'
+import TasksPage from '../../pages/TasksPage'
 
 function AppShell() {
   return (
@@ -32,15 +33,7 @@ function AppShell() {
               <Route index element={<ProjectWorkspaceOverviewPage />} />
               <Route path="requirements" element={<RequirementsPage />} />
               <Route path="architecture" element={<ArchitecturePage />} />
-              <Route
-                path="tasks"
-                element={
-                  <ProjectWorkspacePlaceholderPage
-                    title="Tasks"
-                    description="The task workspace for this project is planned for a future sprint."
-                  />
-                }
-              />
+              <Route path="tasks" element={<TasksPage />} />
               <Route
                 path="activity"
                 element={

@@ -6,6 +6,7 @@ import AppShell from '../components/layout/AppShell'
 import * as api from '../services/api'
 import * as architectureService from '../services/architectureService'
 import * as requirementService from '../services/requirementService'
+import * as taskService from '../services/taskService'
 
 const testProject: api.Project = {
   id: 'proj-alpha',
@@ -21,6 +22,7 @@ describe('Workspace Requirements Navigation', () => {
     vi.restoreAllMocks()
     vi.spyOn(api, 'getProject').mockResolvedValue(testProject)
     vi.spyOn(architectureService, 'getArchitecture').mockResolvedValue(null)
+    vi.spyOn(taskService, 'getTasks').mockResolvedValue([])
     vi.spyOn(requirementService, 'getRequirements').mockResolvedValue([
       {
         id: 'req-alpha-1',
@@ -99,6 +101,30 @@ describe('Workspace Requirements Navigation', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { level: 2, name: 'Project architecture' })).toBeInTheDocument()
+    })
+  })
+
+  it('marks Tasks tab as active when on /projects/:projectId/tasks route', async () => {
+    render(
+      <MemoryRouter initialEntries={['/projects/proj-alpha/tasks']}>
+        <AppShell />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Alpha System' })).toBeInTheDocument()
+    })
+
+    const tasksTab = screen.getByRole('link', { name: 'Tasks' })
+    expect(tasksTab).toBeInTheDocument()
+    expect(tasksTab).toHaveClass('workspace-tab-active')
+    expect(tasksTab).toHaveAttribute('href', '/projects/proj-alpha/tasks')
+
+    const overviewTab = screen.getByRole('link', { name: 'Overview' })
+    expect(overviewTab).not.toHaveClass('workspace-tab-active')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: 'Project tasks' })).toBeInTheDocument()
     })
   })
 })
