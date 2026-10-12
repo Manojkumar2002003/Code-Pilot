@@ -12,6 +12,7 @@ from app.database.base import Base
 
 if TYPE_CHECKING:
     from app.models.architecture import Architecture
+    from app.models.task import Task
 
 
 def utc_now() -> datetime:
@@ -50,6 +51,11 @@ class Project(Base):
         "Architecture",
         back_populates="project",
         uselist=False,
+        cascade="all, delete-orphan",
+    )
+    tasks: Mapped[list[Task]] = relationship(
+        "Task",
+        back_populates="project",
         cascade="all, delete-orphan",
     )
 

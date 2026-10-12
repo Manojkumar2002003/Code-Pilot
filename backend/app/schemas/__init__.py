@@ -14,6 +14,14 @@ from app.schemas.requirement import (
     RequirementType,
     RequirementUpdate,
 )
+from app.schemas.task import (
+    TaskBase,
+    TaskCreate,
+    TaskPriority,
+    TaskResponse,
+    TaskStatus,
+    TaskUpdate,
+)
 
 __all__ = [
     'ArchitectureBase',
@@ -32,4 +40,11 @@ __all__ = [
     'RequirementStatus',
     'RequirementType',
     'RequirementUpdate',
+    'TaskBase',
+    'TaskCreate',
+    'TaskPriority',
+    'TaskResponse',
+    'TaskStatus',
+    'TaskUpdate',
 ]
+

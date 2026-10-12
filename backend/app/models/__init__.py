@@ -1,5 +1,7 @@
 from app.models.architecture import Architecture
 from app.models.project import Project
 from app.models.requirement import Requirement
+from app.models.task import Task
 
-__all__ = ["Architecture", "Project", "Requirement"]
+__all__ = ["Architecture", "Project", "Requirement", "Task"]
+

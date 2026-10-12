@@ -20,6 +20,7 @@ from app.services.architecture import (
 from app.services.health_service import DependencyHealthResponse, get_dependency_health
 from app.services.project import ProjectNotFoundError
 from app.services.requirement import RequirementNotFoundError, RequirementProjectMismatchError
+from app.services.task import TaskNotFoundError, TaskProjectMismatchError
 
 
 class HealthResponse(BaseModel):
@@ -105,6 +106,22 @@ async def architecture_project_mismatch_exception_handler(request: Request, exc:
     return JSONResponse(
         status_code=404,
         content=build_error_payload('ARCHITECTURE_PROJECT_MISMATCH', str(exc)),
+    )
+
+
+@app.exception_handler(TaskNotFoundError)
+async def task_not_found_exception_handler(request: Request, exc: TaskNotFoundError) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=build_error_payload('TASK_NOT_FOUND', str(exc)),
+    )
+
+
+@app.exception_handler(TaskProjectMismatchError)
+async def task_project_mismatch_exception_handler(request: Request, exc: TaskProjectMismatchError) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=build_error_payload('TASK_PROJECT_MISMATCH', str(exc)),
     )
 
 
