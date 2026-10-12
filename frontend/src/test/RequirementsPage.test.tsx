@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 
-import RequirementsPage from './RequirementsPage'
+import RequirementsPage from '../pages/RequirementsPage'
 import * as requirementService from '../services/requirementService'
 import { ApiError, type Project, type Requirement } from '../services/api'
 

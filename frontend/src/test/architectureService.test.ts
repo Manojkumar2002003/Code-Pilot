@@ -4,7 +4,7 @@ import {
   deleteArchitecture,
   getArchitecture,
   updateArchitecture,
-} from './architectureService'
+} from '../services/architectureService'
 
 describe('architectureService', () => {
   const projectId = 'proj-101'

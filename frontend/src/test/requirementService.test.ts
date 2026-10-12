@@ -5,7 +5,7 @@ import {
   getRequirement,
   getRequirements,
   updateRequirement,
-} from './requirementService'
+} from '../services/requirementService'
 
 describe('requirementService', () => {
   const projectId = 'proj-123'

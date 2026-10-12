@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 
-import ArchitecturePage from './ArchitecturePage'
+import ArchitecturePage from '../pages/ArchitecturePage'
 import * as architectureService from '../services/architectureService'
 import { ApiError, type Architecture, type Project } from '../services/api'
 
