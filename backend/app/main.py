@@ -10,6 +10,7 @@ from starlette.responses import JSONResponse
 from app.api.architectures import router as architecture_router
 from app.api.projects import router as project_router
 from app.api.requirements import router as requirement_router
+from app.api.tasks import router as task_router
 from app.core.config import get_settings
 from app.database import init_db
 from app.services.architecture import (
@@ -50,6 +51,7 @@ app.add_middleware(
 app.include_router(project_router, prefix=settings.api_prefix)
 app.include_router(requirement_router, prefix=settings.api_prefix)
 app.include_router(architecture_router, prefix=settings.api_prefix)
+app.include_router(task_router, prefix=settings.api_prefix)
 
 
 @app.exception_handler(StarletteHTTPException)
