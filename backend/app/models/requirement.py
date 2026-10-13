@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, validates
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.database.base import Base
+
+if TYPE_CHECKING:
+    from app.models.task import Task
 
 
 def utc_now() -> datetime:
@@ -50,6 +54,17 @@ class Requirement(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+
+    tasks: Mapped[list[Task]] = relationship(
+        "Task",
+        secondary="requirement_tasks",
+        back_populates="requirements",
+        lazy="selectin",
+    )
+
+    @property
+    def task_ids(self) -> list[str]:
+        return [task.id for task in self.tasks]
 
     @validates("title")
     def validate_title(self, key: str, value: str) -> str:

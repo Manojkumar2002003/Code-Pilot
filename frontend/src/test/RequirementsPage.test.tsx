@@ -5,7 +5,8 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 
 import RequirementsPage from '../pages/RequirementsPage'
 import * as requirementService from '../services/requirementService'
-import { ApiError, type Project, type Requirement } from '../services/api'
+import * as taskService from '../services/taskService'
+import { ApiError, type Project, type Requirement, type Task } from '../services/api'
 
 const mockProject: Project = {
   id: 'proj-123',
@@ -16,6 +17,19 @@ const mockProject: Project = {
   updated_at: '2026-01-01T00:00:00Z',
 }
 
+const mockTasks: Task[] = [
+  {
+    id: 'task-1',
+    project_id: 'proj-123',
+    title: 'Implement User Authentication',
+    description: 'Set up JWT authentication with secure cookies.',
+    priority: 'high',
+    status: 'in_progress',
+    created_at: '2026-02-01T10:00:00Z',
+    updated_at: '2026-02-02T12:00:00Z',
+  },
+]
+
 const mockRequirements: Requirement[] = [
   {
     id: 'req-1',
@@ -25,6 +39,7 @@ const mockRequirements: Requirement[] = [
     type: 'functional',
     priority: 'high',
     status: 'approved',
+    task_ids: ['task-1'],
     created_at: '2026-02-01T10:00:00Z',
     updated_at: '2026-02-02T12:00:00Z',
   },
@@ -36,6 +51,7 @@ const mockRequirements: Requirement[] = [
     type: 'non_functional',
     priority: 'critical',
     status: 'draft',
+    task_ids: [],
     created_at: '2026-02-03T10:00:00Z',
     updated_at: '2026-02-03T12:00:00Z',
   },
@@ -56,6 +72,7 @@ function renderRequirementsPage(project = mockProject) {
 describe('RequirementsPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.spyOn(taskService, 'getTasks').mockResolvedValue(mockTasks)
   })
 
   it('renders loading state initially while fetching requirements', async () => {
@@ -143,7 +160,7 @@ describe('RequirementsPage', () => {
   })
 
   it('successfully creates a requirement and refreshes the list', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     vi.spyOn(requirementService, 'getRequirements')
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
@@ -332,5 +349,61 @@ describe('RequirementsPage', () => {
       expect(listSpy).toHaveBeenCalledWith('proj-beta')
     })
     expect(screen.getByText('Project Beta')).toBeInTheDocument()
+  })
+
+  it('renders associated tasks on requirement cards', async () => {
+    vi.spyOn(requirementService, 'getRequirements').mockResolvedValue(mockRequirements)
+
+    renderRequirementsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Tasks (1)')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTitle('Implement User Authentication')).toBeInTheDocument()
+  })
+
+  it('allows unlinking a task via confirmation dialog', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(requirementService, 'getRequirements').mockResolvedValue(mockRequirements)
+    const unlinkSpy = vi.spyOn(requirementService, 'unlinkRequirementTask').mockResolvedValue(undefined)
+
+    renderRequirementsPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Unlink task Implement User Authentication' })).toBeInTheDocument()
+    })
+
+    const unlinkBtn = screen.getByRole('button', { name: 'Unlink task Implement User Authentication' })
+    await user.click(unlinkBtn)
+
+    expect(screen.getByText('Unlink Task')).toBeInTheDocument()
+    expect(screen.getByText(/Are you sure you want to unlink/)).toBeInTheDocument()
+
+    const confirmBtn = screen.getByRole('button', { name: 'Unlink Task' })
+    await user.click(confirmBtn)
+
+    await waitFor(() => {
+      expect(unlinkSpy).toHaveBeenCalledWith('proj-123', 'req-1', 'task-1')
+    })
+  })
+
+  it('allows linking a task via quick link dropdown', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(requirementService, 'getRequirements').mockResolvedValue(mockRequirements)
+    const linkSpy = vi.spyOn(requirementService, 'linkRequirementTask').mockResolvedValue(mockTasks[0])
+
+    renderRequirementsPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Sub-200ms API Latency')).toBeInTheDocument()
+    })
+
+    const select = screen.getByLabelText('Link task to Sub-200ms API Latency')
+    await user.selectOptions(select, 'task-1')
+
+    await waitFor(() => {
+      expect(linkSpy).toHaveBeenCalledWith('proj-123', 'req-2', 'task-1')
+    })
   })
 })

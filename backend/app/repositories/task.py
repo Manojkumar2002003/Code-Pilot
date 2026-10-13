@@ -5,6 +5,7 @@ from typing import Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.requirement import Requirement
 from app.models.task import Task
 from app.schemas.task import TaskCreate, TaskUpdate
 
@@ -65,5 +66,27 @@ class TaskRepository:
         self.session.commit()
         return True
 
+    def get_associated_requirements(self, task: Task) -> Sequence[Requirement]:
+        return list(task.requirements)
+
+    def is_requirement_linked(self, task: Task, requirement: Requirement) -> bool:
+        return any(r.id == requirement.id for r in task.requirements)
+
+    def link_requirement(self, task: Task, requirement: Requirement) -> None:
+        if not self.is_requirement_linked(task, requirement):
+            task.requirements.append(requirement)
+            self.session.commit()
+            self.session.refresh(task)
+
+    def unlink_requirement(self, task: Task, requirement: Requirement) -> bool:
+        match = next((r for r in task.requirements if r.id == requirement.id), None)
+        if match is not None:
+            task.requirements.remove(match)
+            self.session.commit()
+            self.session.refresh(task)
+            return True
+        return False
+
 
 __all__ = ["TaskRepository"]
+

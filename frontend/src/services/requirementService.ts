@@ -1,5 +1,5 @@
 import { request } from './api'
-import type { Requirement, RequirementCreateRequest, RequirementUpdateRequest } from './api'
+import type { Requirement, RequirementCreateRequest, RequirementUpdateRequest, Task } from './api'
 
 export async function getRequirements(projectId: string): Promise<Requirement[]> {
   return request<Requirement[]>(`/api/projects/${projectId}/requirements`)
@@ -32,3 +32,29 @@ export async function deleteRequirement(projectId: string, requirementId: string
     method: 'DELETE',
   })
 }
+
+export async function getRequirementTasks(projectId: string, requirementId: string): Promise<Task[]> {
+  return request<Task[]>(`/api/projects/${projectId}/requirements/${requirementId}/tasks`)
+}
+
+export async function linkRequirementTask(
+  projectId: string,
+  requirementId: string,
+  taskId: string,
+): Promise<Task> {
+  return request<Task>(`/api/projects/${projectId}/requirements/${requirementId}/tasks`, {
+    method: 'POST',
+    body: JSON.stringify({ task_id: taskId }),
+  })
+}
+
+export async function unlinkRequirementTask(
+  projectId: string,
+  requirementId: string,
+  taskId: string,
+): Promise<void> {
+  await request<void>(`/api/projects/${projectId}/requirements/${requirementId}/tasks/${taskId}`, {
+    method: 'DELETE',
+  })
+}
+

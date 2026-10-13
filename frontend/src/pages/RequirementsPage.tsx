@@ -13,13 +13,18 @@ import {
   type RequirementStatus,
   type RequirementType,
   type RequirementUpdateRequest,
+  type Task,
 } from '../services/api'
 import {
   createRequirement,
   deleteRequirement,
   getRequirements,
+  linkRequirementTask,
+  unlinkRequirementTask,
   updateRequirement,
 } from '../services/requirementService'
+import { getTasks } from '../services/taskService'
+
 
 const REQUIREMENT_TYPE_LABELS: Record<RequirementType, string> = {
   functional: 'Functional',
@@ -58,6 +63,7 @@ function RequirementsPage() {
   const { project } = useOutletContext<WorkspaceOutletContext>()
 
   const [requirements, setRequirements] = useState<Requirement[]>([])
+  const [projectTasks, setProjectTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -83,6 +89,16 @@ function RequirementsPage() {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  // Association unlink state
+  const [unlinkTarget, setUnlinkTarget] = useState<{
+    requirement: Requirement
+    taskId: string
+    taskTitle: string
+  } | null>(null)
+  const [unlinking, setUnlinking] = useState(false)
+  const [unlinkError, setUnlinkError] = useState<string | null>(null)
+  const [cardActionError, setCardActionError] = useState<string | null>(null)
+
   const loadRequirements = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -102,9 +118,20 @@ function RequirementsPage() {
     }
   }, [project.id])
 
+  const loadTasks = useCallback(async () => {
+    try {
+      const data = await getTasks(project.id)
+      setProjectTasks(data)
+    } catch {
+      setProjectTasks([])
+    }
+  }, [project.id])
+
   useEffect(() => {
     void loadRequirements()
-  }, [loadRequirements])
+    void loadTasks()
+  }, [loadRequirements, loadTasks])
+
 
   const openCreateForm = () => {
     setEditingRequirement(null)
@@ -245,7 +272,43 @@ function RequirementsPage() {
     }
   }
 
+  const handleLinkTask = async (requirement: Requirement, taskId: string) => {
+    setCardActionError(null)
+    try {
+      await linkRequirementTask(project.id, requirement.id, taskId)
+      await loadRequirements()
+    } catch (caughtError) {
+      if (caughtError instanceof ApiError) {
+        setCardActionError(caughtError.message)
+        return
+      }
+      setCardActionError('Unable to link task. Please try again.')
+    }
+  }
+
+  const handleUnlinkConfirm = async () => {
+    if (!unlinkTarget) return
+
+    setUnlinkError(null)
+    setUnlinking(true)
+
+    try {
+      await unlinkRequirementTask(project.id, unlinkTarget.requirement.id, unlinkTarget.taskId)
+      setUnlinkTarget(null)
+      await loadRequirements()
+    } catch (caughtError) {
+      if (caughtError instanceof ApiError) {
+        setUnlinkError(caughtError.message)
+        return
+      }
+      setUnlinkError('Unable to unlink task. Please try again.')
+    } finally {
+      setUnlinking(false)
+    }
+  }
+
   const isEditing = editingRequirement !== null
+
 
   return (
     <div className="requirements-page">
@@ -307,6 +370,44 @@ function RequirementsPage() {
           </div>
         </div>
       ) : null}
+
+      {/* Unlink task confirmation */}
+      {unlinkTarget ? (
+        <div className="state-panel delete-confirmation requirement-delete-confirmation">
+          <h3>Unlink task?</h3>
+          <p>
+            Are you sure you want to unlink task <strong>{unlinkTarget.taskTitle}</strong> from requirement <strong>{unlinkTarget.requirement.title}</strong>? This action will only remove the association and will not delete the task or the requirement.
+          </p>
+
+          {unlinkError ? (
+            <div className="form-error" role="alert">
+              {unlinkError}
+            </div>
+          ) : null}
+
+          <div className="project-confirmation-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                setUnlinkTarget(null)
+                setUnlinkError(null)
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="danger-button"
+              onClick={handleUnlinkConfirm}
+              disabled={unlinking}
+            >
+              {unlinking ? 'Unlinking...' : 'Unlink Task'}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
 
       {/* Form modal */}
       {formOpen ? (
@@ -482,69 +583,142 @@ function RequirementsPage() {
           </div>
         </div>
       ) : (
-        <div className="requirement-list">
-          {requirements.map((requirement) => (
-            <article
-              key={requirement.id}
-              className="requirement-card"
-              aria-label={`Requirement: ${requirement.title}`}
-            >
-              <div className="requirement-card-header">
-                <div className="requirement-card-title-row">
-                  <h3 className="requirement-card-title">{requirement.title}</h3>
-                  <div className="requirement-card-badges">
-                    <span
-                      className={`requirement-badge requirement-badge-priority requirement-badge-priority-${requirement.priority}`}
-                    >
-                      {REQUIREMENT_PRIORITY_LABELS[requirement.priority]}
-                    </span>
-                    <span
-                      className={`requirement-badge requirement-badge-status requirement-badge-status-${requirement.status}`}
-                    >
-                      {REQUIREMENT_STATUS_LABELS[requirement.status]}
-                    </span>
+        <>
+          {cardActionError ? (
+            <div className="form-error" role="alert" style={{ marginBottom: '1rem' }}>
+              {cardActionError}
+            </div>
+          ) : null}
+
+          <div className="requirement-list">
+            {requirements.map((requirement) => (
+              <article
+                key={requirement.id}
+                className="requirement-card"
+                aria-label={`Requirement: ${requirement.title}`}
+              >
+                <div className="requirement-card-header">
+                  <div className="requirement-card-title-row">
+                    <h3 className="requirement-card-title">{requirement.title}</h3>
+                    <div className="requirement-card-badges">
+                      <span
+                        className={`requirement-badge requirement-badge-priority requirement-badge-priority-${requirement.priority}`}
+                      >
+                        {REQUIREMENT_PRIORITY_LABELS[requirement.priority]}
+                      </span>
+                      <span
+                        className={`requirement-badge requirement-badge-status requirement-badge-status-${requirement.status}`}
+                      >
+                        {REQUIREMENT_STATUS_LABELS[requirement.status]}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <p className="requirement-card-description">{requirement.description}</p>
+                <p className="requirement-card-description">{requirement.description}</p>
 
-              <div className="requirement-card-footer">
-                <div className="requirement-card-meta">
-                  <span className="requirement-meta-tag">
-                    {REQUIREMENT_TYPE_LABELS[requirement.type]}
-                  </span>
-                  <span className="requirement-meta-date">
-                    Updated {formatRequirementDate(requirement.updated_at)}
-                  </span>
+                <div className="card-associations">
+                  <div className="associations-header">
+                    <span className="associations-label">
+                      Tasks ({(requirement.task_ids ?? []).length})
+                    </span>
+                    {(() => {
+                      const linkedIds = new Set(requirement.task_ids ?? [])
+                      const availableToLink = projectTasks.filter((t) => !linkedIds.has(t.id))
+                      if (availableToLink.length === 0) return null
+                      return (
+                        <select
+                          className="association-link-select"
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              void handleLinkTask(requirement, e.target.value)
+                            }
+                          }}
+                          aria-label={`Link task to ${requirement.title}`}
+                        >
+                          <option value="">+ Link task...</option>
+                          {availableToLink.map((task) => (
+                            <option key={task.id} value={task.id}>
+                              {task.title}
+                            </option>
+                          ))}
+                        </select>
+                      )
+                    })()}
+                  </div>
+                  <div className="associations-list">
+                    {(requirement.task_ids ?? []).length === 0 ? (
+                      <span className="association-empty-text">No tasks linked</span>
+                    ) : (
+                      (requirement.task_ids ?? []).map((taskId) => {
+                        const taskObj = projectTasks.find((t) => t.id === taskId)
+                        const taskTitle = taskObj?.title ?? taskId
+                        return (
+                          <span key={taskId} className="association-chip">
+                            <span className="association-chip-title" title={taskTitle}>
+                              {taskTitle}
+                            </span>
+                            <button
+                              type="button"
+                              className="association-unlink-button"
+                              onClick={() => {
+                                setUnlinkError(null)
+                                setUnlinkTarget({
+                                  requirement,
+                                  taskId,
+                                  taskTitle,
+                                })
+                              }}
+                              aria-label={`Unlink task ${taskTitle}`}
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        )
+                      })
+                    )}
+                  </div>
                 </div>
 
-                <div className="requirement-card-actions">
-                  <button
-                    type="button"
-                    className="secondary-button requirement-action-button"
-                    onClick={() => openEditForm(requirement)}
-                    aria-label={`Edit ${requirement.title}`}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="danger-button requirement-action-button"
-                    onClick={() => {
-                      setDeleteError(null)
-                      setDeleteTarget(requirement)
-                    }}
-                    aria-label={`Delete ${requirement.title}`}
-                  >
-                    Delete
-                  </button>
+                <div className="requirement-card-footer">
+                  <div className="requirement-card-meta">
+                    <span className="requirement-meta-tag">
+                      {REQUIREMENT_TYPE_LABELS[requirement.type]}
+                    </span>
+                    <span className="requirement-meta-date">
+                      Updated {formatRequirementDate(requirement.updated_at)}
+                    </span>
+                  </div>
+
+                  <div className="requirement-card-actions">
+                    <button
+                      type="button"
+                      className="secondary-button requirement-action-button"
+                      onClick={() => openEditForm(requirement)}
+                      aria-label={`Edit ${requirement.title}`}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-button requirement-action-button"
+                      onClick={() => {
+                        setDeleteError(null)
+                        setDeleteTarget(requirement)
+                      }}
+                      aria-label={`Delete ${requirement.title}`}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
-        </div>
+              </article>
+            ))}
+          </div>
+        </>
       )}
+
     </div>
   )
 }

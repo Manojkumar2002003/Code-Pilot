@@ -5,7 +5,8 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 
 import TasksPage from '../pages/TasksPage'
 import * as taskService from '../services/taskService'
-import { ApiError, type Project, type Task } from '../services/api'
+import * as requirementService from '../services/requirementService'
+import { ApiError, type Project, type Requirement, type Task } from '../services/api'
 
 const mockProject: Project = {
   id: 'proj-123',
@@ -16,6 +17,20 @@ const mockProject: Project = {
   updated_at: '2026-01-01T00:00:00Z',
 }
 
+const mockRequirements: Requirement[] = [
+  {
+    id: 'req-1',
+    project_id: 'proj-123',
+    title: 'User Authentication Flow',
+    description: 'JWT tokens',
+    type: 'functional',
+    priority: 'high',
+    status: 'approved',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+  },
+]
+
 const mockTasks: Task[] = [
   {
     id: 'task-1',
@@ -24,6 +39,7 @@ const mockTasks: Task[] = [
     description: 'Set up JWT authentication with secure cookies.',
     priority: 'high',
     status: 'in_progress',
+    requirement_ids: ['req-1'],
     created_at: '2026-02-01T10:00:00Z',
     updated_at: '2026-02-02T12:00:00Z',
   },
@@ -34,6 +50,7 @@ const mockTasks: Task[] = [
     description: 'Ensure automated CI test execution passes.',
     priority: 'critical',
     status: 'todo',
+    requirement_ids: [],
     created_at: '2026-02-03T10:00:00Z',
     updated_at: '2026-02-03T12:00:00Z',
   },
@@ -54,6 +71,7 @@ function renderTasksPage(project = mockProject) {
 describe('TasksPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.spyOn(requirementService, 'getRequirements').mockResolvedValue(mockRequirements)
   })
 
   it('renders loading state initially while fetching tasks', async () => {
@@ -331,6 +349,62 @@ describe('TasksPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Deletion prohibited')).toBeInTheDocument()
+    })
+  })
+
+  it('renders associated requirements on task cards', async () => {
+    vi.spyOn(taskService, 'getTasks').mockResolvedValue(mockTasks)
+
+    renderTasksPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Requirements (1)')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTitle('User Authentication Flow')).toBeInTheDocument()
+  })
+
+  it('allows unlinking a requirement via confirmation dialog', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(taskService, 'getTasks').mockResolvedValue(mockTasks)
+    const unlinkSpy = vi.spyOn(taskService, 'unlinkTaskRequirement').mockResolvedValue(undefined)
+
+    renderTasksPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Unlink requirement User Authentication Flow' })).toBeInTheDocument()
+    })
+
+    const unlinkBtn = screen.getByRole('button', { name: 'Unlink requirement User Authentication Flow' })
+    await user.click(unlinkBtn)
+
+    expect(screen.getByText('Unlink Requirement')).toBeInTheDocument()
+    expect(screen.getByText(/Are you sure you want to unlink/)).toBeInTheDocument()
+
+    const confirmBtn = screen.getByRole('button', { name: 'Unlink Requirement' })
+    await user.click(confirmBtn)
+
+    await waitFor(() => {
+      expect(unlinkSpy).toHaveBeenCalledWith('proj-123', 'task-1', 'req-1')
+    })
+  })
+
+  it('allows linking a requirement via quick link dropdown', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(taskService, 'getTasks').mockResolvedValue(mockTasks)
+    const linkSpy = vi.spyOn(taskService, 'linkTaskRequirement').mockResolvedValue(mockRequirements[0])
+
+    renderTasksPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Configure Vitest Pipeline')).toBeInTheDocument()
+    })
+
+    const select = screen.getByLabelText('Link requirement to Configure Vitest Pipeline')
+    await user.selectOptions(select, 'req-1')
+
+    await waitFor(() => {
+      expect(linkSpy).toHaveBeenCalledWith('proj-123', 'task-2', 'req-1')
     })
   })
 })

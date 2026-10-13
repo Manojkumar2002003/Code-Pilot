@@ -5,8 +5,15 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.repositories.project import ProjectRepository
+from app.repositories.requirement import RequirementRepository
 from app.repositories.task import TaskRepository
-from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
+from app.schemas.requirement import RequirementResponse
+from app.schemas.task import (
+    RequirementAssociationRequest,
+    TaskCreate,
+    TaskResponse,
+    TaskUpdate,
+)
 from app.services.task import TaskService
 
 router = APIRouter(prefix='/projects/{project_id}/tasks', tags=['tasks'])
@@ -16,7 +23,9 @@ def get_task_service(db: Session = Depends(get_db)) -> TaskService:
     return TaskService(
         TaskRepository(db),
         ProjectRepository(db),
+        RequirementRepository(db),
     )
+
 
 
 @router.post('', response_model=TaskResponse, status_code=status.HTTP_201_CREATED, summary='Create a task')
@@ -69,4 +78,48 @@ def delete_task(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.get('/{task_id}/requirements', response_model=list[RequirementResponse], summary='List requirements associated with a task')
+def list_task_requirements(
+    project_id: str,
+    task_id: str,
+    service: TaskService = Depends(get_task_service),
+) -> list[RequirementResponse]:
+    requirements = service.list_requirements_for_task(project_id, task_id)
+    return [RequirementResponse.model_validate(req) for req in requirements]
+
+
+@router.post('/{task_id}/requirements', response_model=RequirementResponse, status_code=status.HTTP_201_CREATED, summary='Link a requirement to a task')
+def link_requirement_to_task(
+    project_id: str,
+    task_id: str,
+    link_data: RequirementAssociationRequest,
+    service: TaskService = Depends(get_task_service),
+) -> RequirementResponse:
+    requirement = service.link_requirement(project_id, task_id, link_data.requirement_id)
+    return RequirementResponse.model_validate(requirement)
+
+
+@router.post('/{task_id}/requirements/{requirement_id}', response_model=RequirementResponse, status_code=status.HTTP_201_CREATED, summary='Link a requirement to a task by path')
+def link_requirement_to_task_by_path(
+    project_id: str,
+    task_id: str,
+    requirement_id: str,
+    service: TaskService = Depends(get_task_service),
+) -> RequirementResponse:
+    requirement = service.link_requirement(project_id, task_id, requirement_id)
+    return RequirementResponse.model_validate(requirement)
+
+
+@router.delete('/{task_id}/requirements/{requirement_id}', status_code=status.HTTP_204_NO_CONTENT, summary='Unlink a requirement from a task')
+def unlink_requirement_from_task(
+    project_id: str,
+    task_id: str,
+    requirement_id: str,
+    service: TaskService = Depends(get_task_service),
+) -> Response:
+    service.unlink_requirement(project_id, task_id, requirement_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 __all__ = ['router']
+

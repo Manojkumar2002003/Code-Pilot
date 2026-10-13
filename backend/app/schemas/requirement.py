@@ -89,10 +89,17 @@ class RequirementUpdate(BaseModel):
         return self
 
 
+class TaskAssociationRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    task_id: str = Field(..., min_length=1)
+
+
 class RequirementResponse(RequirementBase):
     id: str
     project_id: str
     status: RequirementStatus
+    task_ids: list[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
@@ -105,4 +112,6 @@ __all__ = [
     "RequirementCreate",
     "RequirementUpdate",
     "RequirementResponse",
+    "TaskAssociationRequest",
 ]
+

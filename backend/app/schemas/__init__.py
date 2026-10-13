@@ -13,8 +13,10 @@ from app.schemas.requirement import (
     RequirementStatus,
     RequirementType,
     RequirementUpdate,
+    TaskAssociationRequest,
 )
 from app.schemas.task import (
+    RequirementAssociationRequest,
     TaskBase,
     TaskCreate,
     TaskPriority,
@@ -40,11 +42,13 @@ __all__ = [
     'RequirementStatus',
     'RequirementType',
     'RequirementUpdate',
+    'TaskAssociationRequest',
     'TaskBase',
     'TaskCreate',
     'TaskPriority',
     'TaskResponse',
     'TaskStatus',
     'TaskUpdate',
+    'RequirementAssociationRequest',
 ]
 

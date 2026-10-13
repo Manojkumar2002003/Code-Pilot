@@ -20,7 +20,13 @@ from app.services.architecture import (
 )
 from app.services.health_service import DependencyHealthResponse, get_dependency_health
 from app.services.project import ProjectNotFoundError
-from app.services.requirement import RequirementNotFoundError, RequirementProjectMismatchError
+from app.services.requirement import (
+    CrossProjectAssociationError,
+    RequirementNotFoundError,
+    RequirementProjectMismatchError,
+    RequirementTaskAlreadyLinkedError,
+    RequirementTaskNotLinkedError,
+)
 from app.services.task import TaskNotFoundError, TaskProjectMismatchError
 
 
@@ -124,6 +130,30 @@ async def task_project_mismatch_exception_handler(request: Request, exc: TaskPro
     return JSONResponse(
         status_code=404,
         content=build_error_payload('TASK_PROJECT_MISMATCH', str(exc)),
+    )
+
+
+@app.exception_handler(CrossProjectAssociationError)
+async def cross_project_association_exception_handler(request: Request, exc: CrossProjectAssociationError) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content=build_error_payload('CROSS_PROJECT_ASSOCIATION', str(exc)),
+    )
+
+
+@app.exception_handler(RequirementTaskAlreadyLinkedError)
+async def requirement_task_already_linked_exception_handler(request: Request, exc: RequirementTaskAlreadyLinkedError) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content=build_error_payload('REQUIREMENT_TASK_ALREADY_LINKED', str(exc)),
+    )
+
+
+@app.exception_handler(RequirementTaskNotLinkedError)
+async def requirement_task_not_linked_exception_handler(request: Request, exc: RequirementTaskNotLinkedError) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=build_error_payload('REQUIREMENT_TASK_NOT_LINKED', str(exc)),
     )
 
 

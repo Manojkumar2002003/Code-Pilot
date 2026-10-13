@@ -151,6 +151,82 @@ describe('taskService', () => {
     })
   })
 
+  describe('getTaskRequirements', () => {
+    it('sends GET request to /api/projects/:projectId/tasks/:taskId/requirements', async () => {
+      const mockReqs = [
+        {
+          id: 'req-1',
+          project_id: projectId,
+          title: 'Req 1',
+          description: 'Desc',
+          type: 'functional',
+          priority: 'high',
+          status: 'approved',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+        },
+      ]
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify(mockReqs),
+      } as Response)
+
+      const { getTaskRequirements } = await import('../services/taskService')
+      const result = await getTaskRequirements(projectId, taskId)
+
+      expect(result).toEqual(mockReqs)
+      const [url] = vi.mocked(globalThis.fetch).mock.calls[0]
+      expect(url).toContain(`/api/projects/${projectId}/tasks/${taskId}/requirements`)
+    })
+  })
+
+  describe('linkTaskRequirement', () => {
+    it('sends POST request with requirement_id payload', async () => {
+      const updatedTask = {
+        id: taskId,
+        project_id: projectId,
+        title: 'Task Title',
+        priority: 'high',
+        status: 'todo',
+        requirement_ids: ['req-1'],
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      }
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify(updatedTask),
+      } as Response)
+
+      const { linkTaskRequirement } = await import('../services/taskService')
+      const result = await linkTaskRequirement(projectId, taskId, 'req-1')
+
+      expect(result).toEqual(updatedTask)
+      const [url, init] = vi.mocked(globalThis.fetch).mock.calls[0]
+      expect(url).toContain(`/api/projects/${projectId}/tasks/${taskId}/requirements`)
+      expect(init?.method).toBe('POST')
+      expect(JSON.parse(init?.body as string)).toEqual({ requirement_id: 'req-1' })
+    })
+  })
+
+  describe('unlinkTaskRequirement', () => {
+    it('sends DELETE request to /api/projects/:projectId/tasks/:taskId/requirements/:reqId', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        text: async () => '',
+      } as Response)
+
+      const { unlinkTaskRequirement } = await import('../services/taskService')
+      await expect(unlinkTaskRequirement(projectId, taskId, 'req-1')).resolves.toBeUndefined()
+
+      const [url, init] = vi.mocked(globalThis.fetch).mock.calls[0]
+      expect(url).toContain(`/api/projects/${projectId}/tasks/${taskId}/requirements/req-1`)
+      expect(init?.method).toBe('DELETE')
+    })
+  })
+
   describe('error handling', () => {
     it('throws ApiError with server error details on failure', async () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue({

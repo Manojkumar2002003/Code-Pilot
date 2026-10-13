@@ -47,7 +47,7 @@ class TaskBase(BaseModel):
 
 
 class TaskCreate(TaskBase):
-    pass
+    requirement_ids: list[str] | None = Field(default=None)
 
 
 class TaskUpdate(BaseModel):
@@ -57,6 +57,7 @@ class TaskUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=5000)
     status: TaskStatus | None = None
     priority: TaskPriority | None = None
+    requirement_ids: list[str] | None = Field(default=None)
 
     @field_validator("title")
     @classmethod
@@ -78,14 +79,21 @@ class TaskUpdate(BaseModel):
 
     @model_validator(mode="after")
     def ensure_not_empty(self) -> TaskUpdate:
-        if all(field is None for field in (self.title, self.description, self.status, self.priority)):
+        if all(field is None for field in (self.title, self.description, self.status, self.priority, self.requirement_ids)):
             raise ValueError("At least one task field must be provided for update.")
         return self
+
+
+class RequirementAssociationRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    requirement_id: str = Field(..., min_length=1)
 
 
 class TaskResponse(TaskBase):
     id: str
     project_id: str
+    requirement_ids: list[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
@@ -97,4 +105,6 @@ __all__ = [
     "TaskCreate",
     "TaskUpdate",
     "TaskResponse",
+    "RequirementAssociationRequest",
 ]
+

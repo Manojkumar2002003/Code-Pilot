@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.requirement import Requirement
+from app.models.task import Task
 from app.schemas.requirement import RequirementCreate, RequirementUpdate
 
 
@@ -66,5 +67,27 @@ class RequirementRepository:
         self.session.commit()
         return True
 
+    def get_associated_tasks(self, requirement: Requirement) -> Sequence[Task]:
+        return list(requirement.tasks)
+
+    def is_task_linked(self, requirement: Requirement, task: Task) -> bool:
+        return any(t.id == task.id for t in requirement.tasks)
+
+    def link_task(self, requirement: Requirement, task: Task) -> None:
+        if not self.is_task_linked(requirement, task):
+            requirement.tasks.append(task)
+            self.session.commit()
+            self.session.refresh(requirement)
+
+    def unlink_task(self, requirement: Requirement, task: Task) -> bool:
+        match = next((t for t in requirement.tasks if t.id == task.id), None)
+        if match is not None:
+            requirement.tasks.remove(match)
+            self.session.commit()
+            self.session.refresh(requirement)
+            return True
+        return False
+
 
 __all__ = ['RequirementRepository']
+

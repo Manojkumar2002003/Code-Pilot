@@ -35,7 +35,7 @@ const workspaceSummaryCards = [
   {
     label: 'Tasks',
     description: 'Organize the implementation work associated with the project.',
-    status: 'Coming soon',
+    status: 'Live',
     route: 'tasks',
   },
   {

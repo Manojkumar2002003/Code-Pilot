@@ -5,7 +5,14 @@ from app.services.architecture import (
     ArchitectureService,
 )
 from app.services.project import ProjectNotFoundError, ProjectService
-from app.services.requirement import RequirementNotFoundError, RequirementProjectMismatchError, RequirementService
+from app.services.requirement import (
+    CrossProjectAssociationError,
+    RequirementNotFoundError,
+    RequirementProjectMismatchError,
+    RequirementService,
+    RequirementTaskAlreadyLinkedError,
+    RequirementTaskNotLinkedError,
+)
 from app.services.task import TaskNotFoundError, TaskProjectMismatchError, TaskService
 
 __all__ = [
@@ -13,11 +20,14 @@ __all__ = [
     'ArchitectureNotFoundError',
     'ArchitectureProjectMismatchError',
     'ArchitectureService',
+    'CrossProjectAssociationError',
     'ProjectNotFoundError',
     'ProjectService',
     'RequirementNotFoundError',
     'RequirementProjectMismatchError',
     'RequirementService',
+    'RequirementTaskAlreadyLinkedError',
+    'RequirementTaskNotLinkedError',
     'TaskNotFoundError',
     'TaskProjectMismatchError',
     'TaskService',

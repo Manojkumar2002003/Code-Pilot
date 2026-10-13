@@ -70,6 +70,7 @@ export type Requirement = {
   type: RequirementType
   priority: RequirementPriority
   status: RequirementStatus
+  task_ids?: string[]
   created_at: string
   updated_at: string
 }
@@ -87,6 +88,10 @@ export type RequirementUpdateRequest = {
   type?: RequirementType
   priority?: RequirementPriority
   status?: RequirementStatus
+}
+
+export type TaskAssociationRequest = {
+  task_id: string
 }
 
 export type Architecture = {
@@ -122,6 +127,7 @@ export type Task = {
   description?: string | null
   status: TaskStatus
   priority: TaskPriority
+  requirement_ids?: string[]
   created_at: string
   updated_at: string
 }
@@ -131,6 +137,7 @@ export type TaskCreateRequest = {
   description?: string | null
   priority?: TaskPriority
   status?: TaskStatus
+  requirement_ids?: string[]
 }
 
 export type TaskUpdateRequest = {
@@ -138,7 +145,13 @@ export type TaskUpdateRequest = {
   description?: string | null
   status?: TaskStatus
   priority?: TaskPriority
+  requirement_ids?: string[]
 }
+
+export type RequirementAssociationRequest = {
+  requirement_id: string
+}
+
 
 const API_BASE_URL = apiBaseUrl
 

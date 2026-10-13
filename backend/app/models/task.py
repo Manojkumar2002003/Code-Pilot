@@ -11,6 +11,7 @@ from app.database.base import Base
 
 if TYPE_CHECKING:
     from app.models.project import Project
+    from app.models.requirement import Requirement
 
 
 def utc_now() -> datetime:
@@ -60,6 +61,16 @@ class Task(Base):
     )
 
     project: Mapped[Project] = relationship("Project", back_populates="tasks")
+    requirements: Mapped[list[Requirement]] = relationship(
+        "Requirement",
+        secondary="requirement_tasks",
+        back_populates="tasks",
+        lazy="selectin",
+    )
+
+    @property
+    def requirement_ids(self) -> list[str]:
+        return [r.id for r in self.requirements]
 
     @validates("title")
     def validate_title(self, key: str, value: str) -> str:

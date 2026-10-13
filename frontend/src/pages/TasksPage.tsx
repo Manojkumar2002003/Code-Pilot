@@ -7,18 +7,23 @@ import LoadingState from '../components/common/LoadingState'
 import type { WorkspaceOutletContext } from '../components/workspace/ProjectWorkspaceLayout'
 import {
   ApiError,
+  type Requirement,
   type Task,
   type TaskCreateRequest,
   type TaskPriority,
   type TaskStatus,
   type TaskUpdateRequest,
 } from '../services/api'
+import { getRequirements } from '../services/requirementService'
 import {
   createTask,
   deleteTask,
   getTasks,
+  linkTaskRequirement,
+  unlinkTaskRequirement,
   updateTask,
 } from '../services/taskService'
+
 
 const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
   low: 'Low',
@@ -54,6 +59,7 @@ function TasksPage() {
   const { project } = useOutletContext<WorkspaceOutletContext>()
 
   const [tasks, setTasks] = useState<Task[]>([])
+  const [projectRequirements, setProjectRequirements] = useState<Requirement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,6 +72,7 @@ function TasksPage() {
   const [formDescription, setFormDescription] = useState('')
   const [formPriority, setFormPriority] = useState<TaskPriority>('medium')
   const [formStatus, setFormStatus] = useState<TaskStatus>('todo')
+  const [selectedRequirementIds, setSelectedRequirementIds] = useState<string[]>([])
 
   // Form validation / submission state
   const [formSubmitting, setFormSubmitting] = useState(false)
@@ -77,6 +84,16 @@ function TasksPage() {
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  // Association unlink state
+  const [unlinkTarget, setUnlinkTarget] = useState<{
+    task: Task
+    requirementId: string
+    requirementTitle: string
+  } | null>(null)
+  const [unlinking, setUnlinking] = useState(false)
+  const [unlinkError, setUnlinkError] = useState<string | null>(null)
+  const [cardActionError, setCardActionError] = useState<string | null>(null)
 
   const loadTasks = useCallback(async () => {
     setLoading(true)
@@ -97,9 +114,20 @@ function TasksPage() {
     }
   }, [project.id])
 
+  const loadRequirements = useCallback(async () => {
+    try {
+      const data = await getRequirements(project.id)
+      setProjectRequirements(data)
+    } catch {
+      // Graceful fallback: do not crash if requirements cannot be fetched
+      setProjectRequirements([])
+    }
+  }, [project.id])
+
   useEffect(() => {
     void loadTasks()
-  }, [loadTasks])
+    void loadRequirements()
+  }, [loadTasks, loadRequirements])
 
   const openCreateForm = () => {
     setEditingTask(null)
@@ -107,6 +135,7 @@ function TasksPage() {
     setFormDescription('')
     setFormPriority('medium')
     setFormStatus('todo')
+    setSelectedRequirementIds([])
     setFormError('')
     setTitleError('')
     setDescriptionError('')
@@ -119,6 +148,7 @@ function TasksPage() {
     setFormDescription(task.description ?? '')
     setFormPriority(task.priority)
     setFormStatus(task.status)
+    setSelectedRequirementIds(task.requirement_ids ?? [])
     setFormError('')
     setTitleError('')
     setDescriptionError('')
@@ -129,6 +159,7 @@ function TasksPage() {
     setFormOpen(false)
     setEditingTask(null)
   }
+
 
   const validateForm = (): boolean => {
     let valid = true
@@ -178,6 +209,14 @@ function TasksPage() {
         if (formPriority !== editingTask.priority) payload.priority = formPriority
         if (formStatus !== editingTask.status) payload.status = formStatus
 
+        const initialReqIds = editingTask.requirement_ids ?? []
+        const reqsChanged =
+          selectedRequirementIds.length !== initialReqIds.length ||
+          selectedRequirementIds.some((id) => !initialReqIds.includes(id))
+        if (reqsChanged) {
+          payload.requirement_ids = selectedRequirementIds
+        }
+
         // If nothing changed, simply close form
         if (Object.keys(payload).length === 0) {
           closeForm()
@@ -191,6 +230,7 @@ function TasksPage() {
           description: trimmedDescription || null,
           priority: formPriority,
           status: formStatus,
+          requirement_ids: selectedRequirementIds.length > 0 ? selectedRequirementIds : undefined,
         }
         await createTask(project.id, payload)
       }
@@ -234,6 +274,42 @@ function TasksPage() {
       setDeleting(false)
     }
   }
+
+  const handleLinkRequirement = async (task: Task, requirementId: string) => {
+    setCardActionError(null)
+    try {
+      await linkTaskRequirement(project.id, task.id, requirementId)
+      await loadTasks()
+    } catch (caughtError) {
+      if (caughtError instanceof ApiError) {
+        setCardActionError(caughtError.message)
+        return
+      }
+      setCardActionError('Unable to link requirement. Please try again.')
+    }
+  }
+
+  const handleUnlinkConfirm = async () => {
+    if (!unlinkTarget) return
+
+    setUnlinkError(null)
+    setUnlinking(true)
+
+    try {
+      await unlinkTaskRequirement(project.id, unlinkTarget.task.id, unlinkTarget.requirementId)
+      setUnlinkTarget(null)
+      await loadTasks()
+    } catch (caughtError) {
+      if (caughtError instanceof ApiError) {
+        setUnlinkError(caughtError.message)
+        return
+      }
+      setUnlinkError('Unable to unlink requirement. Please try again.')
+    } finally {
+      setUnlinking(false)
+    }
+  }
+
 
   const isEditing = editingTask !== null
 
@@ -293,6 +369,43 @@ function TasksPage() {
               disabled={deleting}
             >
               {deleting ? 'Deleting...' : 'Delete Task'}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Unlink requirement confirmation */}
+      {unlinkTarget ? (
+        <div className="state-panel delete-confirmation task-delete-confirmation">
+          <h3>Unlink requirement?</h3>
+          <p>
+            Are you sure you want to unlink requirement <strong>{unlinkTarget.requirementTitle}</strong> from task <strong>{unlinkTarget.task.title}</strong>? This action will only remove the association and will not delete the requirement or the task.
+          </p>
+
+          {unlinkError ? (
+            <div className="form-error" role="alert">
+              {unlinkError}
+            </div>
+          ) : null}
+
+          <div className="project-confirmation-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                setUnlinkTarget(null)
+                setUnlinkError(null)
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="danger-button"
+              onClick={handleUnlinkConfirm}
+              disabled={unlinking}
+            >
+              {unlinking ? 'Unlinking...' : 'Unlink Requirement'}
             </button>
           </div>
         </div>
@@ -413,6 +526,37 @@ function TasksPage() {
                 </div>
               </div>
 
+              {projectRequirements.length > 0 && (
+                <div className="field-group form-associations-group">
+                  <label>Associated Requirements</label>
+                  <div className="form-associations-list" role="group" aria-label="Select requirements">
+                    {projectRequirements.map((req) => (
+                      <label key={req.id} className="form-association-item">
+                        <input
+                          type="checkbox"
+                          checked={selectedRequirementIds.includes(req.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedRequirementIds([...selectedRequirementIds, req.id])
+                            } else {
+                              setSelectedRequirementIds(
+                                selectedRequirementIds.filter((id) => id !== req.id),
+                              )
+                            }
+                          }}
+                        />
+                        <span>{req.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="field-meta">
+                    <span>Select requirements to associate with this task</span>
+                    <span>{selectedRequirementIds.length} selected</span>
+                  </div>
+                </div>
+              )}
+
+
               <div className="form-actions">
                 <button type="button" className="secondary-button" onClick={closeForm}>
                   Cancel
@@ -459,34 +603,106 @@ function TasksPage() {
           </div>
         </div>
       ) : (
-        <div className="task-list">
-          {tasks.map((task) => (
-            <article
-              key={task.id}
-              className="task-card"
-              aria-label={`Task: ${task.title}`}
-            >
-              <div className="task-card-header">
-                <div className="task-card-title-row">
-                  <h3 className="task-card-title">{task.title}</h3>
-                  <div className="task-card-badges">
-                    <span
-                      className={`task-badge task-badge-priority task-badge-priority-${task.priority}`}
-                    >
-                      {TASK_PRIORITY_LABELS[task.priority]}
-                    </span>
-                    <span
-                      className={`task-badge task-badge-status task-badge-status-${task.status}`}
-                    >
-                      {TASK_STATUS_LABELS[task.status]}
-                    </span>
+        <>
+          {cardActionError ? (
+            <div className="form-error" role="alert" style={{ marginBottom: '1rem' }}>
+              {cardActionError}
+            </div>
+          ) : null}
+
+          <div className="task-list">
+            {tasks.map((task) => (
+              <article
+                key={task.id}
+                className="task-card"
+                aria-label={`Task: ${task.title}`}
+              >
+                <div className="task-card-header">
+                  <div className="task-card-title-row">
+                    <h3 className="task-card-title">{task.title}</h3>
+                    <div className="task-card-badges">
+                      <span
+                        className={`task-badge task-badge-priority task-badge-priority-${task.priority}`}
+                      >
+                        {TASK_PRIORITY_LABELS[task.priority]}
+                      </span>
+                      <span
+                        className={`task-badge task-badge-status task-badge-status-${task.status}`}
+                      >
+                        {TASK_STATUS_LABELS[task.status]}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {task.description ? (
-                <p className="task-card-description">{task.description}</p>
-              ) : null}
+                {task.description ? (
+                  <p className="task-card-description">{task.description}</p>
+                ) : null}
+
+                <div className="card-associations">
+                  <div className="associations-header">
+                    <span className="associations-label">
+                      Requirements ({(task.requirement_ids ?? []).length})
+                    </span>
+                    {(() => {
+                      const linkedIds = new Set(task.requirement_ids ?? [])
+                      const availableToLink = projectRequirements.filter((r) => !linkedIds.has(r.id))
+                      if (availableToLink.length === 0) return null
+                      return (
+                        <select
+                          className="association-link-select"
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              void handleLinkRequirement(task, e.target.value)
+                            }
+                          }}
+                          aria-label={`Link requirement to ${task.title}`}
+                        >
+                          <option value="">+ Link requirement...</option>
+                          {availableToLink.map((req) => (
+                            <option key={req.id} value={req.id}>
+                              {req.title}
+                            </option>
+                          ))}
+                        </select>
+                      )
+                    })()}
+                  </div>
+                  <div className="associations-list">
+                    {(task.requirement_ids ?? []).length === 0 ? (
+                      <span className="association-empty-text">No requirements linked</span>
+                    ) : (
+                      (task.requirement_ids ?? []).map((reqId) => {
+                        const reqObj = projectRequirements.find((r) => r.id === reqId)
+                        const reqTitle = reqObj?.title ?? reqId
+                        return (
+                          <span key={reqId} className="association-chip">
+                            <span className="association-chip-title" title={reqTitle}>
+                              {reqTitle}
+                            </span>
+                            <button
+                              type="button"
+                              className="association-unlink-button"
+                              onClick={() => {
+                                setUnlinkError(null)
+                                setUnlinkTarget({
+                                  task,
+                                  requirementId: reqId,
+                                  requirementTitle: reqTitle,
+                                })
+                              }}
+                              aria-label={`Unlink requirement ${reqTitle}`}
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+
 
               <div className="task-card-footer">
                 <div className="task-card-meta">
@@ -520,9 +736,11 @@ function TasksPage() {
             </article>
           ))}
         </div>
-      )}
-    </div>
-  )
+      </>
+    )}
+  </div>
+)
+
 }
 
 export default TasksPage
