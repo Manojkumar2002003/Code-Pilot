@@ -502,7 +502,48 @@ python -m pytest
 - **Capability Mismatch (`UNSUPPORTED_CAPABILITY`)**: The request asked for features (e.g. strict JSON mode) unsupported by the candidate model. The router skips incompatible models.
 - **Ollama Cloud Localhost Rejection**: If you see `Ollama Cloud endpoint cannot point to localhost or loopback address`, change `LLM_OLLAMA_CLOUD_BASE_URL` to a valid remote cloud URL.
 
+## Project Context and Requirement Generation Schemas (S3.3)
+
+S3.3 establishes the validated data contracts and context preparation layer that CodePilot will use for future AI-powered requirement generation (Requirement Analyst agent).
+
+### Project Context Schema & Builder
+
+The `ProjectContext` schema provides a typed snapshot of project data and user input:
+- **Project Boundary Isolation**: Every context object is bound to a single `project_id`. Clarifications or inputs from other projects are strictly rejected via `CrossProjectContextError`.
+- **Data Provenance**: Every entry tracks its origin using `ContextProvenance` (`PROJECT_METADATA`, `USER_CLARIFICATION`, `APPROVED_REQUIREMENT`, `USER_GOAL`).
+- **Approved Requirement Refinement**: Existing requirements from the database are only loaded when `include_approved_requirements=True` is explicitly specified by the caller (e.g. for requirement refinement or regeneration), and only requirements with status `approved` are summarized.
+- **Service Layer**: `ProjectContextBuilder` extracts repository models, validates project boundaries, records provenance, and outputs a validated `ProjectContext`.
+
+### Clarification Contracts
+
+Ambiguities in project descriptions are modeled using typed clarification schemas:
+- `ClarificationQuestion`: Contains a stable identifier (`CQ-1`), question prompt, rationale explaining why the information matters, domain category, required flag, and suggested answer options.
+- `ClarificationAnswer`: Captures user responses, selected options, and timestamp, validating project association.
+
+### Requirement Generation Specification Schemas
+
+The generated output is structured into specialized proposal models under `RequirementGenerationResult`:
+- **Functional Requirements (`ProposedFunctionalRequirement`)**: Stable identifier (`FR-1`), title, description, expected system behavior, actor role, priority, acceptance criteria, dependencies, assumptions, and unresolved questions.
+- **Non-Functional Requirements (`ProposedNonFunctionalRequirement`)**: Stable identifier (`NFR-1`), title, description, quality category (`NFRCategory`: Performance, Security, Reliability, Scalability, Accessibility, Maintainability, Availability, Compliance), priority, measurable target metric (`target_metric`), and an `is_target_unresolved` flag when the user has not specified a concrete threshold.
+- **User Stories (`ProposedUserStory`)**: Agile format ("As a [actor], I want to [action], so that [benefit]"), verification criteria, and cross-references to requirement IDs.
+- **Business Rules (`ProposedBusinessRule`)**: Business constraints with explicit provenance tracking (`USER_EXPLICIT` vs `MODEL_INFERRED`).
+- **Dependencies & Assumptions (`ProposedDependency`, `ProposedAssumption`)**: Directed dependency graphs (`source_id` -> `target_id`) and unresolved operational hypotheses.
+
+### Separation of Proposed vs. Approved Requirements
+
+CodePilot strictly separates AI-generated proposals from persisted database records:
+- **Proposal Review Lifecycle**: Proposals utilize an independent lifecycle (`ProposalReviewStatus`: `DRAFT`, `ACCEPTED`, `REJECTED`, `MODIFIED`).
+- **No Automatic Persistence**: Generating proposals does NOT save them to the database. Rejected suggestions cannot be silently persisted.
+- **Controlled Conversion**: Only proposals reviewed and transitioned to `ACCEPTED` or `MODIFIED` can be converted into `RequirementCreate` via `proposal.to_requirement_create()`. Attempting to convert draft or rejected proposals raises `ProposalLifecycleError`.
+- **Referential Integrity**: `RequirementGenerationResult` validates that all IDs are unique across collections and that all story, rule, and dependency references map to valid proposed requirement IDs within the same specification.
+
+### Integration with LLM Foundation
+
+- `RequirementGenerationRequest.to_llm_request()` converts project context and scoping instructions into a provider-independent `LLMRequest` with JSON Schema structured output targeting `RequirementGenerationResult`.
+- `RequirementGenerationResult.from_llm_response()` safely deserializes and validates raw provider output (structured dict or markdown JSON text) against the Pydantic schema boundary.
+
 ## Roadmap
+
 
 
 ### Current documented position

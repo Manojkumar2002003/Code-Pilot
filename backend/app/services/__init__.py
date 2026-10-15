@@ -18,6 +18,7 @@ from app.services.llm import (
     OpenRouterAdapter,
 )
 from app.services.project import ProjectNotFoundError, ProjectService
+from app.services.project_context_builder import CrossProjectContextError, ProjectContextBuilder
 from app.services.requirement import (
     CrossProjectAssociationError,
     RequirementNotFoundError,
@@ -36,6 +37,7 @@ __all__ = [
     'BaseLLMProvider',
     'CircuitBreaker',
     'CrossProjectAssociationError',
+    'CrossProjectContextError',
     'GeminiAdapter',
     'GroqAdapter',
     'LLMProviderRegistry',
@@ -45,6 +47,7 @@ __all__ = [
     'NvidiaNimAdapter',
     'OllamaCloudAdapter',
     'OpenRouterAdapter',
+    'ProjectContextBuilder',
     'ProjectNotFoundError',
     'ProjectService',
     'RequirementNotFoundError',
@@ -56,5 +59,3 @@ __all__ = [
     'TaskProjectMismatchError',
     'TaskService',
 ]
-
-

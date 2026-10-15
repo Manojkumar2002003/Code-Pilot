@@ -29,6 +29,11 @@ from app.services.requirement import (
     RequirementTaskNotLinkedError,
 )
 from app.schemas.llm import LLMError
+from app.schemas.requirement_generation import (
+    GenerationSchemaValidationError,
+    ProposalLifecycleError,
+)
+from app.services.project_context_builder import CrossProjectContextError
 from app.services.task import TaskNotFoundError, TaskProjectMismatchError
 
 
@@ -157,6 +162,30 @@ async def requirement_task_not_linked_exception_handler(request: Request, exc: R
     return JSONResponse(
         status_code=404,
         content=build_error_payload('REQUIREMENT_TASK_NOT_LINKED', str(exc)),
+    )
+
+
+@app.exception_handler(CrossProjectContextError)
+async def cross_project_context_exception_handler(request: Request, exc: CrossProjectContextError) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content=build_error_payload('CROSS_PROJECT_CONTEXT_VIOLATION', str(exc)),
+    )
+
+
+@app.exception_handler(ProposalLifecycleError)
+async def proposal_lifecycle_exception_handler(request: Request, exc: ProposalLifecycleError) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content=build_error_payload('PROPOSAL_LIFECYCLE_ERROR', str(exc)),
+    )
+
+
+@app.exception_handler(GenerationSchemaValidationError)
+async def generation_schema_validation_exception_handler(request: Request, exc: GenerationSchemaValidationError) -> JSONResponse:
+    return JSONResponse(
+        status_code=422,
+        content=build_error_payload('GENERATION_SCHEMA_VALIDATION_ERROR', str(exc)),
     )
 
 
