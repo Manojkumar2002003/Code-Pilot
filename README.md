@@ -383,7 +383,127 @@ npm run test
 
 This keeps the project checked against the project CRUD flow and local route behavior without introducing a broader production-ready platform stack.
 
+## Cloud LLM Providers, Model Registry & Intelligent Failover (S3.1 & S3.2)
+
+CodePilot integrates five cloud-hosted LLM providers behind a unified provider-independent interface, supported by a centralized model registry, lightweight health checks, and an intelligent failover routing coordinator.
+
+### Supported Cloud Providers
+
+CodePilot strictly uses cloud-hosted inference. Local Ollama or local model runners are strictly prohibited.
+
+1. **Google Gemini API**: Native Google AI Studio endpoint (`https://generativelanguage.googleapis.com/v1beta`), API key header (`x-goog-api-key`), structured output schema support, and token usage metadata.
+2. **OpenRouter**: OpenRouter routing gateway (`https://openrouter.ai/api/v1`), Bearer token authentication, optional routing headers (`HTTP-Referer`, `X-Title`), usage metadata with native pricing tier representation, and credit exhaustion (HTTP 402) detection.
+3. **NVIDIA NIM**: NVIDIA cloud-hosted API (`https://integrate.api.nvidia.com/v1`), Bearer token authentication, OpenAI-compatible chat completions interface.
+4. **Groq**: High-throughput cloud inference (`https://api.groq.com/openai/v1`), Bearer token authentication, OpenAI-compatible chat completions interface with hardware-accelerated rate limit headers.
+5. **Ollama Cloud**: Remote cloud-hosted inference (`https://cloud.ollama.com` or custom remote gateway). Supports native `/api/chat` and `/v1/chat/completions` protocols. Localhost and loopback addresses (`127.0.0.1`, `localhost`, LAN IPs) are strictly prohibited and rejected by adapter validation.
+
+### Official Provider Documentation & Consoles
+
+| Provider | Official Documentation | Official Console (Obtain API Key) |
+| --- | --- | --- |
+| **Google Gemini** | [Gemini API Docs](https://ai.google.dev/gemini-api/docs) | [Google AI Studio](https://aistudio.google.com/app/apikey) |
+| **OpenRouter** | [OpenRouter Docs](https://openrouter.ai/docs) | [OpenRouter Keys](https://openrouter.ai/keys) |
+| **NVIDIA NIM** | [NVIDIA API Catalog](https://build.nvidia.com/models) | [NVIDIA Build Console](https://build.nvidia.com/) |
+| **Groq** | [Groq Cloud Docs](https://console.groq.com/docs) | [Groq Console Keys](https://console.groq.com/keys) |
+| **Ollama Cloud** | [Ollama Cloud Docs](https://docs.ollama.com/) | [Ollama Cloud Portal](https://ollama.com/) |
+
+### Environment Variables
+
+Configure provider credentials and failover policies in your local `.env` file:
+
+```env
+# Primary Provider Configuration
+LLM_DEFAULT_PROVIDER=gemini
+LLM_REQUEST_TIMEOUT_SECONDS=60.0
+LLM_MAX_OUTPUT_TOKENS=4096
+
+# Failover & Routing Policies
+LLM_FAILOVER_ENABLED=true
+LLM_PROVIDER_PRIORITY=["gemini", "openrouter", "groq", "nvidia_nim", "ollama_cloud"]
+LLM_MAX_FAILOVER_ATTEMPTS=3
+LLM_TOTAL_REQUEST_DEADLINE_SECONDS=120.0
+LLM_CIRCUIT_BREAKER_COOLDOWN_SECONDS=60.0
+
+# 1. Google Gemini
+LLM_GEMINI_API_KEY=
+LLM_GEMINI_MODEL=gemini-2.0-flash
+LLM_GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+LLM_GEMINI_ENABLED=true
+
+# 2. OpenRouter
+LLM_OPENROUTER_API_KEY=
+LLM_OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free
+LLM_OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+LLM_OPENROUTER_ENABLED=true
+
+# 3. NVIDIA NIM
+LLM_NVIDIA_NIM_API_KEY=
+LLM_NVIDIA_NIM_MODEL=meta/llama-3.1-8b-instruct
+LLM_NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com/v1
+LLM_NVIDIA_NIM_ENABLED=true
+
+# 4. Groq
+LLM_GROQ_API_KEY=
+LLM_GROQ_MODEL=llama-3.1-8b-instant
+LLM_GROQ_BASE_URL=https://api.groq.com/openai/v1
+LLM_GROQ_ENABLED=true
+
+# 5. Ollama Cloud (Cloud remote endpoints only; no localhost)
+LLM_OLLAMA_CLOUD_API_KEY=
+LLM_OLLAMA_CLOUD_MODEL=llama3.1:latest
+LLM_OLLAMA_CLOUD_BASE_URL=https://cloud.ollama.com
+LLM_OLLAMA_CLOUD_ENABLED=false
+```
+
+### Model Registry & Verification
+
+The centralized `ModelRegistry` maintains verified catalog entries for each provider:
+- **Capabilities**: Structured output (`json_mode`), tool calling, streaming.
+- **Limits**: Verified context window (e.g. 1,048,576 for Gemini 2.0 Flash; 131,072 for Groq Llama 3.1) and maximum output tokens.
+- **Pricing & Tier**: Distinguishes verified free-tier models (e.g. OpenRouter `:free`, Gemini free-tier) from standard cloud tiers.
+- **Unknown Attributes**: Fields that cannot be verified from official docs are marked `None` / unknown rather than invented.
+- Dynamic registration allows runtime or user-defined models without requiring code changes.
+
+### Intelligent Failover & Circuit Breaker Architecture
+
+The router layer wraps provider adapters to guarantee high-reliability execution:
+
+1. **Candidate Filtering**: Only providers that are enabled, configured with valid API keys, not tripped by a circuit breaker, and whose selected model meets all required capabilities (e.g., structured JSON) and context length are considered.
+2. **Prioritized Routing**: Candidates are evaluated according to `LLM_PROVIDER_PRIORITY`.
+3. **Error Classification**:
+   - *Failover Eligible*: HTTP 429 (rate limits), HTTP 402 / quota exhaustion, HTTP 504 (gateway timeouts), network errors (HTTP 502/connect failures), transient server crashes (500/503), and HTTP 404 (model unavailable).
+   - *Terminal / Non-Eligible*: HTTP 400 (malformed request), HTTP 401/403 (invalid API key / unauthorized), and unsupported capabilities. These terminate immediately with actionable error details to prevent wasted retry quota.
+4. **Circuit Breaker**: When a provider encounters a transient or rate-limit failure, it enters an active cooldown for `LLM_CIRCUIT_BREAKER_COOLDOWN_SECONDS` (or provider's `Retry-After` header if longer). Subsequent requests bypass tripped providers automatically.
+5. **Bounded Execution & Deadlines**: Requests enforce `LLM_MAX_FAILOVER_ATTEMPTS` and `LLM_TOTAL_REQUEST_DEADLINE_SECONDS`. If total elapsed time exceeds the deadline, failover halts and reports timeout.
+6. **Task Semantics & Context Preservation**: Alternate models must satisfy capability requirements (such as structured JSON). Requests that exceed an alternate model's context window are rejected with clear capability errors rather than silently truncated.
+7. **Disabling Failover**: Set `LLM_FAILOVER_ENABLED=false` in `.env`, or submit an `LLMRequest` with an explicit `provider` and `failover=False`.
+
+### Health & Monitoring Endpoints
+
+- `GET /api/llm/status`: Returns configured state, default provider, enabled providers, and circuit-breaker status. API keys are completely redacted.
+- `GET /api/llm/models`: Returns catalog of all supported models, capabilities, and context limits.
+- `POST /api/llm/health/check`: Actively polls lightweight provider metadata endpoints (e.g., `/v1beta/models` for Gemini, `/api/v1/auth/key` for OpenRouter, `/v1/models` for Groq/NVIDIA NIM, `/api/tags` for Ollama Cloud) without generating tokens or incurring inference quota.
+- `POST /api/llm/generate`: Sends an inference request through the intelligent failover coordinator and returns normalized responses with detailed failover telemetry (`provider`, `model`, `failover_metadata`).
+
+### Running Tests Without Real Credentials
+
+All tests execute offline using deterministic mocked HTTP transports without making live network calls or consuming API credits:
+
+```bash
+cd backend
+python -m pytest
+```
+
+### Troubleshooting
+
+- **Authentication Failure (`401 / 403`)**: Ensure the API key in `.env` is correct and active in the provider's developer console. The router marks the provider as `AUTH_FAILURE` and avoids retry loops.
+- **Rate Limits (`429`)**: The router will respect `Retry-After` headers and fail over to the next configured provider in priority. Check provider tier limits if multiple providers exhaust capacity.
+- **Quota Exhaustion (`402` or quota errors)**: Verify whether free-tier credits or account quotas have expired. Transition priority to another configured provider.
+- **Capability Mismatch (`UNSUPPORTED_CAPABILITY`)**: The request asked for features (e.g. strict JSON mode) unsupported by the candidate model. The router skips incompatible models.
+- **Ollama Cloud Localhost Rejection**: If you see `Ollama Cloud endpoint cannot point to localhost or loopback address`, change `LLM_OLLAMA_CLOUD_BASE_URL` to a valid remote cloud URL.
+
 ## Roadmap
+
 
 ### Current documented position
 - Sprint 0: foundation complete

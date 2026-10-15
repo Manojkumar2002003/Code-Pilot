@@ -8,6 +8,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
 from app.api.architectures import router as architecture_router
+from app.api.llm import router as llm_router
 from app.api.projects import router as project_router
 from app.api.requirements import router as requirement_router
 from app.api.tasks import router as task_router
@@ -27,6 +28,7 @@ from app.services.requirement import (
     RequirementTaskAlreadyLinkedError,
     RequirementTaskNotLinkedError,
 )
+from app.schemas.llm import LLMError
 from app.services.task import TaskNotFoundError, TaskProjectMismatchError
 
 
@@ -58,6 +60,7 @@ app.include_router(project_router, prefix=settings.api_prefix)
 app.include_router(requirement_router, prefix=settings.api_prefix)
 app.include_router(architecture_router, prefix=settings.api_prefix)
 app.include_router(task_router, prefix=settings.api_prefix)
+app.include_router(llm_router, prefix=settings.api_prefix)
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -154,6 +157,34 @@ async def requirement_task_not_linked_exception_handler(request: Request, exc: R
     return JSONResponse(
         status_code=404,
         content=build_error_payload('REQUIREMENT_TASK_NOT_LINKED', str(exc)),
+    )
+
+
+@app.exception_handler(LLMError)
+async def llm_error_exception_handler(request: Request, exc: LLMError) -> JSONResponse:
+    """Return a safe, normalised error for any LLM provider failure."""
+    from app.schemas.llm import LLMErrorCode
+
+    status_map = {
+        LLMErrorCode.INVALID_CREDENTIALS: 401,
+        LLMErrorCode.UNSUPPORTED_PROVIDER: 400,
+        LLMErrorCode.UNSUPPORTED_MODEL: 400,
+        LLMErrorCode.INVALID_REQUEST: 400,
+        LLMErrorCode.UNSUPPORTED_PARAMETER: 400,
+        LLMErrorCode.RATE_LIMIT_EXCEEDED: 429,
+        LLMErrorCode.QUOTA_EXHAUSTED: 429,
+        LLMErrorCode.REQUEST_TIMEOUT: 504,
+        LLMErrorCode.NETWORK_ERROR: 502,
+        LLMErrorCode.PROVIDER_OUTAGE: 503,
+        LLMErrorCode.INVALID_RESPONSE: 502,
+        LLMErrorCode.UNSUPPORTED_CAPABILITY: 400,
+        LLMErrorCode.PROVIDER_NOT_CONFIGURED: 400,
+        LLMErrorCode.INTERNAL_ERROR: 500,
+    }
+    http_status = status_map.get(exc.code, 500)
+    return JSONResponse(
+        status_code=http_status,
+        content=build_error_payload(exc.code.value, str(exc)),
     )
 
 

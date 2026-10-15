@@ -4,6 +4,19 @@ from app.services.architecture import (
     ArchitectureProjectMismatchError,
     ArchitectureService,
 )
+from app.services.llm import (
+    BaseLLMProvider,
+    CircuitBreaker,
+    GeminiAdapter,
+    GroqAdapter,
+    LLMProviderRegistry,
+    LLMRouter,
+    LLMService,
+    ModelRegistry,
+    NvidiaNimAdapter,
+    OllamaCloudAdapter,
+    OpenRouterAdapter,
+)
 from app.services.project import ProjectNotFoundError, ProjectService
 from app.services.requirement import (
     CrossProjectAssociationError,
@@ -20,7 +33,18 @@ __all__ = [
     'ArchitectureNotFoundError',
     'ArchitectureProjectMismatchError',
     'ArchitectureService',
+    'BaseLLMProvider',
+    'CircuitBreaker',
     'CrossProjectAssociationError',
+    'GeminiAdapter',
+    'GroqAdapter',
+    'LLMProviderRegistry',
+    'LLMRouter',
+    'LLMService',
+    'ModelRegistry',
+    'NvidiaNimAdapter',
+    'OllamaCloudAdapter',
+    'OpenRouterAdapter',
     'ProjectNotFoundError',
     'ProjectService',
     'RequirementNotFoundError',
@@ -32,4 +56,5 @@ __all__ = [
     'TaskProjectMismatchError',
     'TaskService',
 ]
+
 
