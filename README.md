@@ -542,6 +542,31 @@ CodePilot strictly separates AI-generated proposals from persisted database reco
 - `RequirementGenerationRequest.to_llm_request()` converts project context and scoping instructions into a provider-independent `LLMRequest` with JSON Schema structured output targeting `RequirementGenerationResult`.
 - `RequirementGenerationResult.from_llm_response()` safely deserializes and validates raw provider output (structured dict or markdown JSON text) against the Pydantic schema boundary.
 
+## Requirement Analyst Engine (S3.4)
+
+S3.4 implements the core Requirement Analyst Agent (`RequirementAnalystAgent`) located in `backend/app/agents/requirement_analyst.py`, responsible for transforming user project ideas and context into structured software requirements specifications.
+
+### Architecture & Agent Organization
+
+- **Agent Package (`backend/app/agents/`)**: The core agent logic resides in `RequirementAnalystAgent` (`requirement_analyst.py`) alongside specialized system prompts (`prompts.py`).
+- **Service Facade (`backend/app/services/requirement_analyst.py`)**: A lightweight service layer facade delegates directly to the agent in `app.agents` to maintain clean separation of concerns and backward compatibility.
+- **Provider-Independent Routing**: Operates through `LLMRouter` (S3.2) utilizing remote cloud LLM providers (Google Gemini, OpenRouter, NVIDIA NIM, Groq, Ollama Cloud) with automatic failover, circuit breaking, and capability matching.
+
+### Generation Modes
+
+The agent supports three generation workflows governed by `GenerationMode`:
+1. **Initial (`initial`)**: First-pass requirement generation from project description, domain goals, and constraints. Identifies ambiguities and formulates actionable `ClarificationQuestion` items.
+2. **Refinement (`refinement`)**: Ingests user-answered clarification questions (`clarification_answers`) and supplemental guidance to refine existing draft proposals without losing previous decisions.
+3. **Regeneration (`regeneration`)**: Scopes or re-generates proposals while preserving approved database requirements loaded into `ProjectContext`, preventing duplication or contradictory specifications.
+
+### Reliability & Resilience Safeguards
+
+- **Context Sufficiency Pre-validation**: Validates that project descriptions contain sufficient information (>= 15 characters, >= 3 distinct words) before making remote LLM calls, raising `InsufficientContextError` (HTTP 400) when context is deficient.
+- **Context Window Budgeting**: Computes conservative token estimates against candidate model context limits, raising `ContextWindowExceededError` (HTTP 400) if the payload risks truncation or overflow.
+- **Bounded Repair Loop**: If an LLM response produces malformed JSON or fails Pydantic schema validation, the agent executes up to `max_repair_attempts` (default 1) corrective requests providing specific Pydantic validation errors to the model before failing with `GenerationSchemaValidationError`.
+- **Failover & Telemetry Tracking**: Propagates router failover metadata, token usage, latency, repair counts, and provider information in `GenerationExecutionMetadata`.
+- **Strict Separation of Proposed vs. Persisted Data**: AI proposals remain purely in memory as `DRAFT` items and are never persisted to the database by the analyst engine.
+
 ## Roadmap
 
 

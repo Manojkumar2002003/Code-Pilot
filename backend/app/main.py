@@ -30,8 +30,11 @@ from app.services.requirement import (
 )
 from app.schemas.llm import LLMError
 from app.schemas.requirement_generation import (
+    ContextWindowExceededError,
     GenerationSchemaValidationError,
+    InsufficientContextError,
     ProposalLifecycleError,
+    RequirementAnalystError,
 )
 from app.services.project_context_builder import CrossProjectContextError
 from app.services.task import TaskNotFoundError, TaskProjectMismatchError
@@ -186,6 +189,22 @@ async def generation_schema_validation_exception_handler(request: Request, exc: 
     return JSONResponse(
         status_code=422,
         content=build_error_payload('GENERATION_SCHEMA_VALIDATION_ERROR', str(exc)),
+    )
+
+
+@app.exception_handler(InsufficientContextError)
+async def insufficient_context_exception_handler(request: Request, exc: InsufficientContextError) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content=build_error_payload('INSUFFICIENT_PROJECT_CONTEXT', str(exc)),
+    )
+
+
+@app.exception_handler(ContextWindowExceededError)
+async def context_window_exceeded_exception_handler(request: Request, exc: ContextWindowExceededError) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content=build_error_payload('CONTEXT_WINDOW_EXCEEDED', str(exc)),
     )
 
 

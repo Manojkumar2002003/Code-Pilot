@@ -21,6 +21,7 @@ from app.schemas.llm import (
     LLMResponse,
     MessageRole,
     StructuredOutputRequirement,
+    TokenUsage,
 )
 from app.schemas.project_context import ClarificationQuestion, ProjectContext
 from app.schemas.requirement import (
@@ -39,9 +40,50 @@ class ProposalLifecycleError(Exception):
     pass
 
 
-class GenerationSchemaValidationError(Exception):
+class RequirementAnalystError(Exception):
+    """Base exception for Requirement Analyst Engine operations."""
+    pass
+
+
+class InsufficientContextError(RequirementAnalystError):
+    """Raised when project context lacks sufficient detail for meaningful requirement generation."""
+    pass
+
+
+class ContextWindowExceededError(RequirementAnalystError):
+    """Raised when context and generation instructions exceed the target model's context window."""
+    pass
+
+
+class GenerationSchemaValidationError(RequirementAnalystError):
     """Raised when an LLM output fails schema validation or referential integrity."""
     pass
+
+
+class GenerationMode(str, Enum):
+    """Operating mode for requirement generation runs."""
+
+    INITIAL = "initial"
+    REFINEMENT = "refinement"
+    REGENERATION = "regeneration"
+
+
+class GenerationExecutionMetadata(BaseModel):
+    """Execution telemetry recorded during requirement generation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    generation_mode: GenerationMode = GenerationMode.INITIAL
+    initial_provider: LLMProviderID | None = None
+    initial_model: str | None = None
+    final_provider: LLMProviderID | None = None
+    final_model: str | None = None
+    failover_occurred: bool = False
+    duration_seconds: float = 0.0
+    repair_attempts: int = 0
+    structured_output_validated: bool = True
+    token_usage: TokenUsage | None = None
+    failure_category: str | None = None
 
 
 class ProposalReviewStatus(str, Enum):
@@ -419,6 +461,10 @@ class RequirementGenerationRequest(BaseModel):
         default_factory=list,
         description="Optional subset of NFR categories to generate.",
     )
+    mode: GenerationMode = Field(
+        default=GenerationMode.INITIAL,
+        description="Generation mode: initial, refinement, or regeneration.",
+    )
     include_user_stories: bool = True
     include_business_rules: bool = True
     include_clarifications: bool = True
@@ -437,6 +483,7 @@ class RequirementGenerationRequest(BaseModel):
         system_instruction: str | None = None,
         model: str | None = None,
         provider: LLMProviderID | None = None,
+        temperature: float | None = None,
     ) -> LLMRequest:
         """Create a provider-independent LLMRequest targeting this generation result schema."""
         default_sys = (
@@ -460,6 +507,7 @@ class RequirementGenerationRequest(BaseModel):
             model=model,
             system_instruction=sys_prompt,
             messages=[ConversationMessage(role=MessageRole.USER, content=user_prompt)],
+            temperature=temperature,
             structured_output=StructuredOutputRequirement(
                 json_schema=RequirementGenerationResult.model_json_schema(),
                 description="RequirementGenerationResult JSON Schema",
@@ -492,6 +540,10 @@ class RequirementGenerationResult(BaseModel):
     dependencies: list[ProposedDependency] = Field(default_factory=list)
     clarification_questions: list[ClarificationQuestion] = Field(default_factory=list)
     validation_warnings: list[str] = Field(default_factory=list)
+    execution_metadata: GenerationExecutionMetadata | None = Field(
+        default=None,
+        description="Execution and failover telemetry recorded during generation.",
+    )
 
     @field_validator("summary")
     @classmethod
@@ -676,20 +728,25 @@ def convert_proposal_to_requirement_create(
 
 
 __all__ = [
-    "ProposalLifecycleError",
+    "ContextWindowExceededError",
+    "GenerationExecutionMetadata",
+    "GenerationMode",
     "GenerationSchemaValidationError",
-    "ProposalReviewStatus",
+    "InsufficientContextError",
     "NFRCategory",
-    "RuleProvenance",
-    "ReviewDecision",
+    "ProposalLifecycleError",
+    "ProposalReviewStatus",
+    "ProposedAssumption",
+    "ProposedBusinessRule",
+    "ProposedDependency",
     "ProposedFunctionalRequirement",
     "ProposedNonFunctionalRequirement",
     "ProposedUserStory",
-    "ProposedBusinessRule",
-    "ProposedAssumption",
-    "ProposedDependency",
-    "RequirementReviewDecision",
+    "RequirementAnalystError",
     "RequirementGenerationRequest",
     "RequirementGenerationResult",
+    "RequirementReviewDecision",
+    "ReviewDecision",
+    "RuleProvenance",
     "convert_proposal_to_requirement_create",
 ]
