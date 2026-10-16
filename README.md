@@ -754,6 +754,56 @@ pytest tests/test_requirement_generation_api.py -v
 ```
 All tests execute offline using deterministic mocked agent outputs and in-memory SQLite fixtures without network calls or external API keys.
 
+## S3.7 — Requirement Generation UI
+
+The frontend workflow for AI-powered requirement generation and clarification is integrated directly into CodePilot's project workspace under the Requirements module.
+
+### User Workflow
+
+1. **Entry Point & Context Verification**:
+   - Navigate to `/projects/:projectId/requirements`.
+   - The Requirements screen features a subnavigation tab bar: **Approved Requirements ({count})** and **✨ AI Requirement Analyst**.
+   - Users can switch views anytime via the subnav tabs, the header action button (`✨ AI Analyst`), or the empty-state action button (`✨ Generate with AI`).
+   - The generator context card displays the current project name and stored description. If the description has fewer than 10 non-whitespace characters, an actionable warning is rendered and generation is disabled until the description is enriched.
+   - Users may optionally provide steering guidance or domain constraints in the optional instructions input.
+
+2. **Starting Requirement Generation**:
+   - Clicking **✨ Generate Requirements with AI** sends a generation request to the backend.
+   - The action button displays an animated spinner with `Analyzing & Generating...` and is disabled to prevent duplicate submissions.
+   - Upon completion, the UI loads the generated specification and any active clarification session questions.
+
+3. **Clarification Workflow**:
+   - The **Clarification Questions** panel renders questions returned by the analyst, displaying category tags (`functional`, `architecture`, `security`), required vs. optional badges, and explicit architectural rationale ("Why this matters").
+   - Users can answer questions either by clicking suggested option chips (e.g. `+ GitHub + Google OAuth`), typing in the accessible free-text response field, or combining both.
+   - Answers can be saved incrementally at any time using **Save Answers**.
+   - **Refine Specification** is guarded client-side: it remains disabled with a descriptive tooltip until all required questions have answers.
+   - Clicking **✨ Refine Specification** incorporates the answers, runs iterative refinement on the backend, updates the revision counter, renders revision change statistics (new, changed, retained, removed), and highlights specific requirement diffs. Previous results remain safely visible if refinement fails.
+
+4. **Human Review Boundaries**:
+   - Generated results are explicitly labeled with a prominent **Awaiting Human Review** status banner.
+   - AI proposals are displayed in structured categories: Functional Requirements, Non-Functional Requirements, User Stories, Business Rules, and Assumptions & Dependencies.
+   - Generated proposals remain strictly separate from approved project requirements and are never automatically merged into formal Requirement records (formal approval belongs to S3.8).
+
+### Frontend Architecture & Endpoints Consumed
+
+- **API Service**: `frontend/src/services/requirementGenerationService.ts`
+- **Component**: `frontend/src/components/requirements/RequirementGenerationPanel.tsx`
+- **Backend Endpoints Consumed**:
+  - `POST /api/projects/{project_id}/requirement-generations`: Trigger new requirement generation.
+  - `GET /api/projects/{project_id}/requirement-generations/latest`: Retrieve latest generation run.
+  - `GET /api/projects/{project_id}/requirement-generations/{generation_id}`: Retrieve specific generation run.
+  - `GET /api/projects/{project_id}/clarification-sessions/{session_id}`: Retrieve clarification session state and questions.
+  - `POST /api/projects/{project_id}/clarification-sessions/{session_id}/answers`: Save answers incrementally.
+  - `POST /api/projects/{project_id}/clarification-sessions/{session_id}/refine`: Execute iterative refinement with submitted answers.
+  - `GET /api/projects/{project_id}/clarification-sessions/{session_id}/revisions`: Inspect revision history.
+
+### Frontend Testing
+
+Automated Vitest test suite covering entry point rendering, context sufficiency guards, generation execution, option selection, required question validation, refinement with diffs, error safety, and proposal/approval isolation:
+```bash
+npm test -- --run src/test/RequirementGenerationPanel.test.tsx
+```
+
 ## Roadmap
 
 

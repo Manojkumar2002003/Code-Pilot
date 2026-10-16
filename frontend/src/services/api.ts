@@ -152,6 +152,201 @@ export type RequirementAssociationRequest = {
   requirement_id: string
 }
 
+// --- S3.7 Requirement Generation & Clarification Types ---
+
+export type ClarificationQuestion = {
+  id: string
+  question: string
+  rationale?: string | null
+  category?: string
+  is_required: boolean
+  suggested_options?: string[]
+  user_response?: string | null
+  selected_options?: string[]
+}
+
+export type ClarificationAnswer = {
+  question_id: string
+  project_id: string
+  answer: string
+  selected_options?: string[]
+  answered_at?: string
+}
+
+export type ClarificationAnswerInput = {
+  question_id: string
+  answer: string
+  selected_options?: string[]
+}
+
+export type ClarificationSessionStatus =
+  | 'awaiting_clarification'
+  | 'ready_for_refinement'
+  | 'refinement_in_progress'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+
+export type ClarificationSession = {
+  id: string
+  project_id: string
+  generation_id: string
+  status: ClarificationSessionStatus
+  current_revision: number
+  questions: ClarificationQuestion[]
+  answers: ClarificationAnswer[]
+  unanswered_question_ids: string[]
+  has_unanswered_required_questions: boolean
+  last_error?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ProposedFunctionalRequirement = {
+  id: string
+  title: string
+  description: string
+  expected_behavior: string
+  acceptance_criteria?: string[]
+}
+
+export type ProposedNonFunctionalRequirement = {
+  id: string
+  title: string
+  description: string
+  category: string
+  target_metric?: string | null
+}
+
+export type ProposedUserStory = {
+  id: string
+  title: string
+  as_a: string
+  i_want: string
+  so_that: string
+  acceptance_criteria?: string[]
+}
+
+export type ProposedBusinessRule = {
+  id: string
+  title: string
+  rule_statement: string
+  rationale?: string | null
+  provenance?: string
+}
+
+export type ProposedAssumption = {
+  id: string
+  description: string
+  impact_if_invalid?: string | null
+}
+
+export type ProposedDependency = {
+  id: string
+  dependency_name: string
+  dependency_type: string
+  description?: string | null
+}
+
+export type GenerationExecutionMetadata = {
+  generation_mode?: string
+  initial_provider?: string | null
+  initial_model?: string | null
+  final_provider?: string | null
+  final_model?: string | null
+  failover_occurred?: boolean
+  duration_seconds?: number
+  repair_attempts?: number
+}
+
+export type RequirementGenerationResult = {
+  generation_id: string
+  project_id: string
+  created_at?: string
+  summary: string
+  functional_requirements: ProposedFunctionalRequirement[]
+  non_functional_requirements: ProposedNonFunctionalRequirement[]
+  user_stories?: ProposedUserStory[]
+  business_rules?: ProposedBusinessRule[]
+  assumptions?: ProposedAssumption[]
+  dependencies?: ProposedDependency[]
+  clarification_questions: ClarificationQuestion[]
+  validation_warnings?: string[]
+  execution_metadata?: GenerationExecutionMetadata | null
+}
+
+export type RequirementDiffItem = {
+  id: string
+  title: string
+  change_type: 'new' | 'changed' | 'retained' | 'removed'
+  details: string
+}
+
+export type RequirementDiffSummary = {
+  new_requirements: string[]
+  changed_requirements: string[]
+  retained_requirements: string[]
+  removed_requirements: string[]
+  diff_items: RequirementDiffItem[]
+  total_current: number
+  total_previous: number
+}
+
+export type GenerationRevision = {
+  id: string
+  project_id: string
+  session_id?: string | null
+  generation_id: string
+  parent_generation_id?: string | null
+  revision_number: number
+  generation_mode: string
+  summary: string
+  created_at: string
+  result: RequirementGenerationResult
+}
+
+export type RequirementGenerationResponse = {
+  generation_id: string
+  project_id: string
+  session_id?: string | null
+  status: string
+  revision_number: number
+  summary: string
+  result: RequirementGenerationResult
+  clarification_session?: ClarificationSession | null
+  execution_metadata?: GenerationExecutionMetadata | null
+  created_at: string
+}
+
+export type RequirementGenerationStartRequest = {
+  instructions?: string | null
+  target_categories?: string[] | null
+  goals?: string[] | null
+  provider?: string | null
+  model?: string | null
+  temperature?: number | null
+  request_id?: string | null
+  force_new?: boolean
+}
+
+export type RefinementTriggerRequest = {
+  instructions?: string | null
+  answers?: ClarificationAnswerInput[] | null
+  provider?: string | null
+  model?: string | null
+  temperature?: number | null
+}
+
+export type RefinementExecutionResult = {
+  session: ClarificationSession
+  latest_generation: RequirementGenerationResult
+  revision: GenerationRevision
+  diff_summary?: RequirementDiffSummary | null
+  new_clarification_questions?: ClarificationQuestion[]
+  execution_metadata?: GenerationExecutionMetadata | null
+  context_conflicts?: string[]
+}
+
 
 const API_BASE_URL = apiBaseUrl
 

@@ -24,6 +24,7 @@ import {
   updateRequirement,
 } from '../services/requirementService'
 import { getTasks } from '../services/taskService'
+import RequirementGenerationPanel from '../components/requirements/RequirementGenerationPanel'
 
 
 const REQUIREMENT_TYPE_LABELS: Record<RequirementType, string> = {
@@ -66,6 +67,8 @@ function RequirementsPage() {
   const [projectTasks, setProjectTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [viewMode, setViewMode] = useState<'approved' | 'generator'>('approved')
 
   // Form modal state
   const [formOpen, setFormOpen] = useState(false)
@@ -322,18 +325,52 @@ function RequirementsPage() {
           </p>
         </div>
 
-        {!loading && !error && requirements.length > 0 && (
+        <div className="requirements-header-actions">
           <button
             type="button"
-            className="primary-button requirement-create-button"
-            onClick={openCreateForm}
+            className="secondary-button"
+            onClick={() => setViewMode(viewMode === 'approved' ? 'generator' : 'approved')}
           >
-            + New Requirement
+            {viewMode === 'approved' ? '✨ AI Analyst' : '← Back to Requirements'}
           </button>
-        )}
+
+          {viewMode === 'approved' && !loading && !error && requirements.length > 0 && (
+            <button
+              type="button"
+              className="primary-button requirement-create-button"
+              onClick={openCreateForm}
+            >
+              + New Requirement
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Delete confirmation */}
+      <nav className="requirements-subnav" aria-label="Requirements Navigation">
+        <button
+          type="button"
+          className={`requirements-nav-tab ${viewMode === 'approved' ? 'active' : ''}`}
+          onClick={() => setViewMode('approved')}
+        >
+          Approved Requirements ({requirements.length})
+        </button>
+        <button
+          type="button"
+          className={`requirements-nav-tab ${viewMode === 'generator' ? 'active' : ''}`}
+          onClick={() => setViewMode('generator')}
+        >
+          ✨ AI Requirement Analyst
+        </button>
+      </nav>
+
+      {viewMode === 'generator' ? (
+        <RequirementGenerationPanel
+          project={project}
+          onSwitchToApproved={() => setViewMode('approved')}
+        />
+      ) : (
+        <>
+          {/* Delete confirmation */}
       {deleteTarget ? (
         <div className="state-panel delete-confirmation requirement-delete-confirmation">
           <h3>Delete requirement?</h3>
@@ -576,9 +613,17 @@ function RequirementsPage() {
             title="No requirements yet"
             description={`Create the first requirement for ${project.name} to get started.`}
           />
-          <div className="empty-project-action">
+          <div className="empty-project-action" style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button type="button" className="action-button enabled" onClick={openCreateForm}>
               + Create Requirement
+            </button>
+            <button
+              type="button"
+              className="action-button enabled"
+              style={{ background: 'linear-gradient(135deg, #0ea5e9, #06b6d4)', color: '#fff' }}
+              onClick={() => setViewMode('generator')}
+            >
+              ✨ Generate with AI
             </button>
           </div>
         </div>
@@ -718,6 +763,8 @@ function RequirementsPage() {
           </div>
         </>
       )}
+    </>
+  )}
 
     </div>
   )
