@@ -26,6 +26,8 @@ from app.schemas.clarification import (
     ClarificationSessionProjectMismatchError,
     ClarificationSessionResponse,
     ClarificationSessionStatus,
+    GenerationNotFoundError,
+    GenerationProjectMismatchError,
     GenerationRevisionNotFoundError,
     GenerationRevisionResponse,
     InvalidClarificationAnswerError,
@@ -34,6 +36,8 @@ from app.schemas.clarification import (
     RefinementTriggerRequest,
     RequirementDiffItem,
     RequirementDiffSummary,
+    RequirementGenerationResponse,
+    RequirementGenerationStartRequest,
 )
 from app.schemas.project_context import (
     ClarificationAnswer,
@@ -166,6 +170,41 @@ class RequirementRefinementService:
             result=parsed_result,
         )
 
+    def _to_generation_response(
+        self,
+        revision: GenerationRevision,
+        session: ClarificationSession | None = None,
+        result: RequirementGenerationResult | None = None,
+    ) -> RequirementGenerationResponse:
+        """Convert a GenerationRevision and optional ClarificationSession into a RequirementGenerationResponse."""
+        parsed_result = result or RequirementGenerationResult.model_validate(
+            revision.result_data
+        )
+        if session is None and revision.session_id:
+            session = self.session_repo.get_by_id(revision.session_id)
+        session_resp = self._to_session_response(session) if session else None
+        gen_status = (
+            session_resp.status.value
+            if session_resp
+            else (
+                ClarificationSessionStatus.AWAITING_CLARIFICATION.value
+                if parsed_result.clarification_questions
+                else ClarificationSessionStatus.COMPLETED.value
+            )
+        )
+        return RequirementGenerationResponse(
+            generation_id=revision.generation_id,
+            project_id=revision.project_id,
+            session_id=session.id if session else revision.session_id,
+            status=gen_status,
+            revision_number=revision.revision_number,
+            summary=revision.summary,
+            result=parsed_result,
+            clarification_session=session_resp,
+            execution_metadata=parsed_result.execution_metadata,
+            created_at=revision.created_at,
+        )
+
     def create_session(
         self,
         project_id: str,
@@ -280,6 +319,103 @@ class RequirementRefinementService:
         self.revision_repo.create(revision)
 
         return self._to_session_response(session)
+
+    async def start_initial_generation(
+        self,
+        project_id: str,
+        request: RequirementGenerationStartRequest | None = None,
+    ) -> RequirementGenerationResponse:
+        """Start a new requirement generation attempt for an existing project."""
+        project = self.project_repo.get_by_id(project_id)
+        if project is None:
+            raise ProjectNotFoundError(project_id)
+
+        req = request or RequirementGenerationStartRequest()
+
+        # 1. Idempotency check: if client supplied request_id and not force_new, check if already exists
+        if req.request_id and not req.force_new:
+            existing_rev = self.revision_repo.get_by_project_and_generation_id(
+                project_id, req.request_id
+            )
+            if existing_rev:
+                return self._to_generation_response(existing_rev)
+
+        # 2. Concurrency check: verify no active refinement is in progress
+        active_sessions = self.session_repo.list_by_project(project_id)
+        for s in active_sessions:
+            if s.status == ClarificationSessionStatus.REFINEMENT_IN_PROGRESS.value:
+                raise ClarificationSessionConcurrencyError(
+                    f"A requirement refinement is already in progress for project '{project_id}'."
+                )
+
+        # 3. Build project context
+        context = self.context_builder.build_context(
+            project_id=project_id,
+            goals=req.goals,
+            include_approved_requirements=False,
+        )
+
+        # 4. Generate requirements using AI agent
+        result = await self.agent.generate_requirements(
+            context=context,
+            mode=GenerationMode.INITIAL,
+            instructions=req.instructions,
+            target_categories=req.target_categories,
+            goals=req.goals,
+            provider=req.provider,
+            model=req.model,
+            temperature=req.temperature,
+        )
+
+        # If client provided request_id, use it as the generation_id
+        if req.request_id:
+            result.generation_id = req.request_id
+
+        # 5. Initialize clarification session and persist Revision 1
+        session_resp = self.initialize_from_generation(project_id, result, context)
+        session = self.session_repo.get_by_id(session_resp.id)
+        revision = self.revision_repo.get_by_generation_id(result.generation_id)
+        if revision is None:
+            revision = self.revision_repo.get_latest_by_session(session_resp.id)
+
+        return self._to_generation_response(revision, session, result)
+
+    def get_generation(
+        self, project_id: str, generation_id: str
+    ) -> RequirementGenerationResponse:
+        """Retrieve status and result of a specific generation attempt."""
+        project = self.project_repo.get_by_id(project_id)
+        if project is None:
+            raise ProjectNotFoundError(project_id)
+
+        revision = self.revision_repo.get_by_generation_id(generation_id)
+        if revision is None:
+            raise GenerationNotFoundError(generation_id)
+
+        if revision.project_id != project_id:
+            raise GenerationProjectMismatchError(
+                generation_id=generation_id,
+                target_project_id=project_id,
+                actual_project_id=revision.project_id,
+            )
+
+        return self._to_generation_response(revision)
+
+    def get_latest_generation_for_project(
+        self, project_id: str
+    ) -> RequirementGenerationResponse:
+        """Retrieve the latest generation result for a project."""
+        project = self.project_repo.get_by_id(project_id)
+        if project is None:
+            raise ProjectNotFoundError(project_id)
+
+        latest_revision = self.revision_repo.get_latest_by_project(project_id)
+        if latest_revision is None:
+            raise GenerationNotFoundError(
+                f"latest requirement generation for project '{project_id}'"
+            )
+
+        return self._to_generation_response(latest_revision)
 
     def get_session(
         self, project_id: str, session_id: str

@@ -11,6 +11,7 @@ from app.api.architectures import router as architecture_router
 from app.api.clarifications import router as clarification_router
 from app.api.llm import router as llm_router
 from app.api.projects import router as project_router
+from app.api.requirement_generations import router as requirement_generation_router
 from app.api.requirements import router as requirement_router
 from app.api.tasks import router as task_router
 from app.core.config import get_settings
@@ -20,6 +21,8 @@ from app.schemas.clarification import (
     ClarificationSessionNotFoundError,
     ClarificationSessionProjectMismatchError,
     ContextConflictError,
+    GenerationNotFoundError,
+    GenerationProjectMismatchError,
     GenerationRevisionNotFoundError,
     InvalidClarificationAnswerError,
     InvalidSessionStateError,
@@ -75,6 +78,7 @@ app.add_middleware(
 
 app.include_router(project_router, prefix=settings.api_prefix)
 app.include_router(requirement_router, prefix=settings.api_prefix)
+app.include_router(requirement_generation_router, prefix=settings.api_prefix)
 app.include_router(clarification_router, prefix=settings.api_prefix)
 app.include_router(architecture_router, prefix=settings.api_prefix)
 app.include_router(task_router, prefix=settings.api_prefix)
@@ -238,12 +242,32 @@ async def generation_revision_not_found_handler(
     )
 
 
+@app.exception_handler(GenerationNotFoundError)
+async def generation_not_found_handler(
+    request: Request, exc: GenerationNotFoundError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=build_error_payload('GENERATION_NOT_FOUND', str(exc)),
+    )
+
+
+@app.exception_handler(GenerationProjectMismatchError)
+async def generation_project_mismatch_handler(
+    request: Request, exc: GenerationProjectMismatchError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=build_error_payload('GENERATION_PROJECT_MISMATCH', str(exc)),
+    )
+
+
 @app.exception_handler(ClarificationSessionProjectMismatchError)
 async def session_project_mismatch_handler(
     request: Request, exc: ClarificationSessionProjectMismatchError
 ) -> JSONResponse:
     return JSONResponse(
-        status_code=400,
+        status_code=404,
         content=build_error_payload('PROJECT_MISMATCH', str(exc)),
     )
 
@@ -263,7 +287,7 @@ async def invalid_session_state_handler(
     request: Request, exc: InvalidSessionStateError
 ) -> JSONResponse:
     return JSONResponse(
-        status_code=400,
+        status_code=409,
         content=build_error_payload('INVALID_SESSION_STATE', str(exc)),
     )
 

@@ -623,6 +623,137 @@ Clarification sessions track the iterative dialogue between human developers and
 - `GET /api/projects/{project_id}/clarifications/sessions/{session_id}/revisions`: List historical generation revisions.
 - `GET /api/projects/{project_id}/clarifications/sessions/{session_id}/revisions/{revision_number}`: Retrieve a specific historical revision.
 
+## Requirement Generation API (S3.6)
+
+S3.6 delivers the project-scoped FastAPI endpoints exposing CodePilot's AI-powered requirement generation and clarification workflow.
+
+### REST Endpoints
+
+| Method | Endpoint | Description | Status Code |
+|---|---|---|---|
+| `POST` | `/api/projects/{project_id}/requirement-generations` | Start initial requirement generation | `201 Created` |
+| `GET` | `/api/projects/{project_id}/requirement-generations/latest` | Retrieve latest generation result for project | `200 OK` |
+| `GET` | `/api/projects/{project_id}/requirement-generations/{generation_id}` | Retrieve status and specification of specific generation attempt | `200 OK` |
+| `GET` | `/api/projects/{project_id}/clarification-sessions/{session_id}` | Retrieve session details, status, questions, and answers | `200 OK` |
+| `GET` | `/api/projects/{project_id}/clarification-sessions/{session_id}/questions` | Retrieve questions (`?pending_only=true` supported) | `200 OK` |
+| `POST` | `/api/projects/{project_id}/clarification-sessions/{session_id}/answers` | Submit answers to one or more questions | `200 OK` |
+| `POST` | `/api/projects/{project_id}/clarification-sessions/{session_id}/refine` | Trigger or resume refinement with user answers | `200 OK` |
+| `GET` | `/api/projects/{project_id}/clarification-sessions/{session_id}/result` | Retrieve latest requirement generation specification | `200 OK` |
+| `GET` | `/api/projects/{project_id}/clarification-sessions/{session_id}/revisions` | List historical generation revisions for session | `200 OK` |
+| `GET` | `/api/projects/{project_id}/clarification-sessions/{session_id}/revisions/{revision_number}` | Retrieve specific revision | `200 OK` |
+
+### Request and Response Schema Contracts
+
+#### 1. Start Requirement Generation (`POST /requirement-generations`)
+
+**Request Payload (`RequirementGenerationStartRequest`):**
+```json
+{
+  "instructions": "Focus on database persistence and security constraints",
+  "target_categories": ["performance", "security"],
+  "goals": ["Sub-second API latency", "Strict role-based access control"],
+  "provider": "gemini",
+  "model": null,
+  "temperature": 0.2,
+  "request_id": "optional-client-idempotency-key",
+  "force_new": false
+}
+```
+
+**Response Payload (`RequirementGenerationResponse`):**
+```json
+{
+  "generation_id": "gen-initial-001",
+  "project_id": "proj-123",
+  "session_id": "sess-456",
+  "status": "awaiting_clarification",
+  "revision_number": 1,
+  "summary": "Initial requirement specification for CodePilot developer workspace.",
+  "result": {
+    "generation_id": "gen-initial-001",
+    "project_id": "proj-123",
+    "summary": "Executive summary...",
+    "functional_requirements": [
+      {
+        "id": "FR-1",
+        "title": "Project Management",
+        "description": "Manage software projects locally.",
+        "expected_behavior": "User can create and list projects.",
+        "acceptance_criteria": ["Can create project"]
+      }
+    ],
+    "non_functional_requirements": [],
+    "user_stories": [],
+    "business_rules": [],
+    "assumptions": [],
+    "dependencies": [],
+    "clarification_questions": [
+      {
+        "id": "CQ-1",
+        "question": "Which database engine should be used for production storage?",
+        "rationale": "Determines SQL dialect and pooling architecture.",
+        "category": "architecture",
+        "is_required": true,
+        "suggested_options": ["PostgreSQL", "SQLite", "MySQL"]
+      }
+    ],
+    "execution_metadata": {
+      "generation_mode": "initial",
+      "initial_provider": "gemini",
+      "final_provider": "gemini",
+      "duration_seconds": 1.2
+    }
+  },
+  "clarification_session": {
+    "id": "sess-456",
+    "project_id": "proj-123",
+    "generation_id": "gen-initial-001",
+    "status": "awaiting_clarification",
+    "current_revision": 1,
+    "questions": [...],
+    "answers": [],
+    "unanswered_question_ids": ["CQ-1"],
+    "has_unanswered_required_questions": true
+  },
+  "execution_metadata": { ... },
+  "created_at": "2026-10-16T14:00:00Z"
+}
+```
+
+### Idempotency & Concurrency
+
+- **Idempotency**: Clients may supply `request_id`. When `force_new` is `false`, the API checks if an identical generation already exists for the project and returns the existing response immediately without invoking the LLM again.
+- **Race Condition Prevention**: Active refinement operations set session state to `refinement_in_progress`. Any concurrent submission to the same session or project returns `HTTP 409 Conflict` (`SESSION_CONCURRENCY_ERROR`).
+
+### HTTP Error Mapping
+
+| HTTP Status | Error Code | Trigger Condition |
+|---|---|---|
+| `400 Bad Request` | `INVALID_CLARIFICATION_ANSWER` | Question does not exist in session, duplicate question submitted |
+| `400 Bad Request` | `INSUFFICIENT_PROJECT_CONTEXT` | Project description contains insufficient substance (< 10 chars, no goals) |
+| `400 Bad Request` | `CONTEXT_WINDOW_EXCEEDED` | Estimated prompt tokens exceed model's token limit |
+| `404 Not Found` | `PROJECT_NOT_FOUND` | Project identifier does not exist |
+| `404 Not Found` | `GENERATION_NOT_FOUND` | Generation run identifier does not exist |
+| `404 Not Found` | `CLARIFICATION_SESSION_NOT_FOUND` | Clarification session identifier does not exist |
+| `404 Not Found` | `GENERATION_PROJECT_MISMATCH` | Generation ID belongs to a different project |
+| `404 Not Found` | `PROJECT_MISMATCH` | Clarification session belongs to a different project |
+| `409 Conflict` | `SESSION_CONCURRENCY_ERROR` | Overlapping refinement run actively executing |
+| `409 Conflict` | `INVALID_SESSION_STATE` | Attempting refinement with unanswered required questions or on a cancelled session |
+| `422 Unprocessable`| `VALIDATION_ERROR` | Malformed request body, invalid parameter ranges, empty required strings |
+| `422 Unprocessable`| `GENERATION_SCHEMA_VALIDATION_ERROR` | Model response fails schema validation after repair |
+| `429 Too Many Req` | `RATE_LIMIT_EXCEEDED` / `QUOTA_EXHAUSTED` | Provider rate limit or token quota exhausted |
+| `502 Bad Gateway` | `NETWORK_ERROR` / `INVALID_RESPONSE` | Provider network connection dropped or returned invalid format |
+| `503 Service Unavail`| `PROVIDER_OUTAGE` | All configured providers unavailable after failover |
+| `504 Gateway Timeout`| `REQUEST_TIMEOUT` | Generation deadline exceeded |
+
+### Testing
+
+Run the automated test suite for requirement generation API:
+```bash
+pytest tests/test_requirement_generation_api.py -v
+```
+All tests execute offline using deterministic mocked agent outputs and in-memory SQLite fixtures without network calls or external API keys.
+
 ## Roadmap
 
 

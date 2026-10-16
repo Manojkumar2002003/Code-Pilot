@@ -112,5 +112,25 @@ class GenerationRevisionRepository:
             .order_by(GenerationRevision.revision_number.desc())
         ).scalars().first()
 
+    def get_latest_by_project(self, project_id: str) -> GenerationRevision | None:
+        return self.db.execute(
+            select(GenerationRevision)
+            .where(GenerationRevision.project_id == project_id)
+            .order_by(
+                GenerationRevision.created_at.desc(),
+                GenerationRevision.revision_number.desc(),
+            )
+        ).scalars().first()
+
+    def get_by_project_and_generation_id(
+        self, project_id: str, generation_id: str
+    ) -> GenerationRevision | None:
+        return self.db.execute(
+            select(GenerationRevision).where(
+                GenerationRevision.project_id == project_id,
+                GenerationRevision.generation_id == generation_id,
+            )
+        ).scalar_one_or_none()
+
 
 __all__ = ["ClarificationSessionRepository", "GenerationRevisionRepository"]

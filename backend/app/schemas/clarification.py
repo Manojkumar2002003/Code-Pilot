@@ -15,6 +15,7 @@ from app.schemas.llm import LLMProviderID
 from app.schemas.project_context import ClarificationAnswer, ClarificationQuestion, ProjectContext
 from app.schemas.requirement_generation import (
     GenerationExecutionMetadata,
+    NFRCategory,
     RequirementGenerationResult,
 )
 
@@ -116,6 +117,29 @@ class GenerationRevisionNotFoundError(ClarificationSessionError):
     def __init__(self, revision_identifier: str):
         super().__init__(f"Generation revision '{revision_identifier}' not found.")
         self.revision_identifier = revision_identifier
+
+
+class GenerationNotFoundError(ClarificationSessionError):
+    """Raised when a requirement generation run is not found."""
+
+    def __init__(self, generation_id: str):
+        super().__init__(f"Requirement generation '{generation_id}' not found.")
+        self.generation_id = generation_id
+
+
+class GenerationProjectMismatchError(ClarificationSessionError):
+    """Raised when a generation does not belong to the target project."""
+
+    def __init__(
+        self, generation_id: str, target_project_id: str, actual_project_id: str
+    ):
+        super().__init__(
+            f"Requirement generation '{generation_id}' belongs to project '{actual_project_id}', "
+            f"not target project '{target_project_id}'."
+        )
+        self.generation_id = generation_id
+        self.target_project_id = target_project_id
+        self.actual_project_id = actual_project_id
 
 
 class ContextConflictError(ClarificationSessionError):
@@ -258,6 +282,72 @@ class RefinementExecutionResult(BaseModel):
     context_conflicts: list[str] = Field(default_factory=list)
 
 
+class RequirementGenerationStartRequest(BaseModel):
+    """Input payload to start an initial requirement generation run."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    instructions: str | None = Field(
+        default=None,
+        max_length=5000,
+        description="Optional focus instructions or guidance for requirement generation.",
+    )
+    target_categories: list[NFRCategory] | None = Field(
+        default=None,
+        description="Optional subset of NFR categories to target.",
+    )
+    goals: list[str] | None = Field(
+        default=None,
+        description="Optional explicit project goals overriding or supplementing the project.",
+    )
+    provider: LLMProviderID | None = Field(
+        default=None,
+        description="Optional explicit LLM provider override.",
+    )
+    model: str | None = Field(
+        default=None,
+        description="Optional explicit LLM model identifier override.",
+    )
+    temperature: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=2.0,
+        description="Optional sampling temperature.",
+    )
+    request_id: str | None = Field(
+        default=None,
+        max_length=128,
+        description="Optional client request identifier for idempotent generation reuse.",
+    )
+    force_new: bool = Field(
+        default=False,
+        description="Force new generation even if an existing generation/revision is available.",
+    )
+
+
+class RequirementGenerationResponse(BaseModel):
+    """Validated response representing a requirement generation result and its session state."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    generation_id: str = Field(..., description="Unique generation run identifier.")
+    project_id: str = Field(..., description="Target project identifier.")
+    session_id: str | None = Field(default=None, description="Associated clarification session identifier if created.")
+    status: str = Field(default="completed", description="Lifecycle status of the generation or session.")
+    revision_number: int = Field(default=1, description="Sequential revision number.")
+    summary: str = Field(..., description="Executive summary of the generated requirement specification.")
+    result: RequirementGenerationResult = Field(..., description="Full structured requirement generation result.")
+    clarification_session: ClarificationSessionResponse | None = Field(
+        default=None,
+        description="Clarification session details including pending questions and answer states.",
+    )
+    execution_metadata: GenerationExecutionMetadata | None = Field(
+        default=None,
+        description="Operational and telemetry metadata for the generation run.",
+    )
+    created_at: datetime = Field(default_factory=utc_now, description="Timestamp of generation creation.")
+
+
 __all__ = [
     "VALID_STATE_TRANSITIONS",
     "ClarificationAnswerInput",
@@ -270,6 +360,8 @@ __all__ = [
     "ClarificationSessionResponse",
     "ClarificationSessionStatus",
     "ContextConflictError",
+    "GenerationNotFoundError",
+    "GenerationProjectMismatchError",
     "GenerationRevisionNotFoundError",
     "GenerationRevisionResponse",
     "InvalidClarificationAnswerError",
@@ -278,4 +370,6 @@ __all__ = [
     "RefinementTriggerRequest",
     "RequirementDiffItem",
     "RequirementDiffSummary",
+    "RequirementGenerationResponse",
+    "RequirementGenerationStartRequest",
 ]
