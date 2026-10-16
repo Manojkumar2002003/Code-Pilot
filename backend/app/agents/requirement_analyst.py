@@ -162,7 +162,7 @@ class RequirementAnalystAgent:
         sys_instruction = get_analyst_system_instruction(mode)
         user_prompt = build_analyst_user_prompt(context=context, instructions=instructions)
 
-        gen_request = RequirementGenerationRequest(
+        RequirementGenerationRequest(
             project_id=context.project_id,
             project_context=context,
             generation_instructions=instructions,

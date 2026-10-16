@@ -567,6 +567,62 @@ The agent supports three generation workflows governed by `GenerationMode`:
 - **Failover & Telemetry Tracking**: Propagates router failover metadata, token usage, latency, repair counts, and provider information in `GenerationExecutionMetadata`.
 - **Strict Separation of Proposed vs. Persisted Data**: AI proposals remain purely in memory as `DRAFT` items and are never persisted to the database by the analyst engine.
 
+## Clarification and Iterative Requirement Generation (S3.5)
+
+S3.5 implements the clarification session lifecycle, answer management, context updating, and iterative refinement engine for CodePilot's Requirement Analyst.
+
+### Clarification Session Lifecycle
+
+Clarification sessions track the iterative dialogue between human developers and the Requirement Analyst Agent:
+- **Session Lifecycle States**:
+  - `awaiting_clarification`: Initial state when clarification questions exist and require developer input.
+  - `ready_for_refinement`: All required questions (or optional questions) have been answered and the specification is ready to refine.
+  - `refinement_in_progress`: An LLM refinement run is actively executing. Blocks concurrent duplicate executions with HTTP 409.
+  - `completed`: Refinement succeeded and no further clarification questions remain.
+  - `failed`: LLM call or validation failed; submitted answers are preserved intact, enabling immediate retry without re-entering answers.
+  - `cancelled`: Session cancelled by developer.
+- **State Transition Guardrails**: Enforces valid state transitions and rejects out-of-order operations.
+
+### Clarification Question & Answer Management
+
+- **Question Validation**: Rejects duplicate question submissions and questions not associated with the active session.
+- **Required vs. Optional Questions**: Required questions must be answered before refinement proceeds; optional questions never block refinement.
+- **Incremental Answer Preservation**: Answers are preserved incrementally across submissions unless explicitly modified by the user.
+- **Project Isolation**: Every session and answer is bound strictly to `project_id`. Cross-project submissions are rejected with `ClarificationSessionProjectMismatchError`.
+
+### Clarification-Aware Context Updating & Conflict Detection
+
+- **Context Assembly**: When preparing for refinement, `ProjectContextBuilder` combines:
+  - Original project description and metadata.
+  - User-stated high-level goals.
+  - Clarification questions and user responses (with provenance tracking).
+  - Previously proposed draft requirements from the preceding revision.
+  - Existing approved database requirements (only when explicitly requested).
+- **Precedence & Conflict Surfacing**: User answers take strict precedence over AI model assumptions. If a user answer conflicts with an earlier stated goal or fact, `detect_context_conflicts` surfaces the conflict as an actionable warning rather than silently overriding it.
+
+### Generation Revisions & History Preservation
+
+- **Revision Traceability**: Every refinement iteration creates an immutable `GenerationRevision` recording `generation_id`, `parent_generation_id`, `revision_number` (1, 2, 3...), summary, and complete specification payload.
+- **Requirement Diffing**: The service computes a structured `RequirementDiffSummary` comparing the previous generation against the new generation, categorizing requirements as `new`, `changed`, `retained`, or `removed`.
+- **Preservation of Approved Requirements**: Existing approved requirements in the database remain completely untouched and are never modified, deleted, or converted by refinement iterations.
+
+### Concurrency & Failure Recovery
+
+- **Race Condition Prevention**: If a refinement request arrives while a session is in `refinement_in_progress`, the service immediately raises `ClarificationSessionConcurrencyError` (HTTP 409).
+- **Safe Failure Recovery**: When a provider encounters timeouts, rate limits, or transient outages, the session transitions to `failed` and records `last_error`. Submitted answers remain safely stored in the database, allowing users to retry refinement with a single click.
+
+### API Endpoints
+
+- `POST /api/projects/{project_id}/clarifications/sessions`: Initialize a clarification session.
+- `GET /api/projects/{project_id}/clarifications/sessions`: List sessions for a project.
+- `GET /api/projects/{project_id}/clarifications/sessions/{session_id}`: Retrieve session details and status.
+- `GET /api/projects/{project_id}/clarifications/sessions/{session_id}/questions`: Retrieve questions (supports `?pending_only=true`).
+- `POST /api/projects/{project_id}/clarifications/sessions/{session_id}/answers`: Submit answers to clarification questions.
+- `POST /api/projects/{project_id}/clarifications/sessions/{session_id}/refine`: Trigger iterative requirement refinement.
+- `GET /api/projects/{project_id}/clarifications/sessions/{session_id}/result`: Retrieve the latest requirement specification.
+- `GET /api/projects/{project_id}/clarifications/sessions/{session_id}/revisions`: List historical generation revisions.
+- `GET /api/projects/{project_id}/clarifications/sessions/{session_id}/revisions/{revision_number}`: Retrieve a specific historical revision.
+
 ## Roadmap
 
 

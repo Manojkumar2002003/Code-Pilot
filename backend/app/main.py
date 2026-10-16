@@ -8,12 +8,22 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
 from app.api.architectures import router as architecture_router
+from app.api.clarifications import router as clarification_router
 from app.api.llm import router as llm_router
 from app.api.projects import router as project_router
 from app.api.requirements import router as requirement_router
 from app.api.tasks import router as task_router
 from app.core.config import get_settings
 from app.database import init_db
+from app.schemas.clarification import (
+    ClarificationSessionConcurrencyError,
+    ClarificationSessionNotFoundError,
+    ClarificationSessionProjectMismatchError,
+    ContextConflictError,
+    GenerationRevisionNotFoundError,
+    InvalidClarificationAnswerError,
+    InvalidSessionStateError,
+)
 from app.services.architecture import (
     ArchitectureAlreadyExistsError,
     ArchitectureNotFoundError,
@@ -34,7 +44,6 @@ from app.schemas.requirement_generation import (
     GenerationSchemaValidationError,
     InsufficientContextError,
     ProposalLifecycleError,
-    RequirementAnalystError,
 )
 from app.services.project_context_builder import CrossProjectContextError
 from app.services.task import TaskNotFoundError, TaskProjectMismatchError
@@ -66,6 +75,7 @@ app.add_middleware(
 
 app.include_router(project_router, prefix=settings.api_prefix)
 app.include_router(requirement_router, prefix=settings.api_prefix)
+app.include_router(clarification_router, prefix=settings.api_prefix)
 app.include_router(architecture_router, prefix=settings.api_prefix)
 app.include_router(task_router, prefix=settings.api_prefix)
 app.include_router(llm_router, prefix=settings.api_prefix)
@@ -208,6 +218,76 @@ async def context_window_exceeded_exception_handler(request: Request, exc: Conte
     )
 
 
+@app.exception_handler(ClarificationSessionNotFoundError)
+async def clarification_session_not_found_handler(
+    request: Request, exc: ClarificationSessionNotFoundError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=build_error_payload('CLARIFICATION_SESSION_NOT_FOUND', str(exc)),
+    )
+
+
+@app.exception_handler(GenerationRevisionNotFoundError)
+async def generation_revision_not_found_handler(
+    request: Request, exc: GenerationRevisionNotFoundError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=build_error_payload('GENERATION_REVISION_NOT_FOUND', str(exc)),
+    )
+
+
+@app.exception_handler(ClarificationSessionProjectMismatchError)
+async def session_project_mismatch_handler(
+    request: Request, exc: ClarificationSessionProjectMismatchError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content=build_error_payload('PROJECT_MISMATCH', str(exc)),
+    )
+
+
+@app.exception_handler(InvalidClarificationAnswerError)
+async def invalid_clarification_answer_handler(
+    request: Request, exc: InvalidClarificationAnswerError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content=build_error_payload('INVALID_CLARIFICATION_ANSWER', str(exc)),
+    )
+
+
+@app.exception_handler(InvalidSessionStateError)
+async def invalid_session_state_handler(
+    request: Request, exc: InvalidSessionStateError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content=build_error_payload('INVALID_SESSION_STATE', str(exc)),
+    )
+
+
+@app.exception_handler(ClarificationSessionConcurrencyError)
+async def session_concurrency_handler(
+    request: Request, exc: ClarificationSessionConcurrencyError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content=build_error_payload('SESSION_CONCURRENCY_ERROR', str(exc)),
+    )
+
+
+@app.exception_handler(ContextConflictError)
+async def context_conflict_handler(
+    request: Request, exc: ContextConflictError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content=build_error_payload('CONTEXT_CONFLICT', str(exc)),
+    )
+
+
 @app.exception_handler(LLMError)
 async def llm_error_exception_handler(request: Request, exc: LLMError) -> JSONResponse:
     """Return a safe, normalised error for any LLM provider failure."""
@@ -258,7 +338,10 @@ async def error_middleware(request: Request, call_next):
     except Exception:
         return JSONResponse(
             status_code=500,
-            content=build_error_payload('INTERNAL_SERVER_ERROR', 'An unexpected server error occurred.'),
+            content=build_error_payload(
+                'INTERNAL_SERVER_ERROR',
+                'An unexpected server error occurred.',
+            ),
         )
 
 

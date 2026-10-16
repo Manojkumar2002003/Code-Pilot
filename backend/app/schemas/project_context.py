@@ -212,6 +212,14 @@ class ProjectContext(BaseModel):
         default_factory=list,
         description="Approved requirements included only when refinement or regeneration is requested.",
     )
+    existing_proposed_requirements: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Previously proposed draft requirements included for refinement.",
+    )
+    clarification_questions: list[ClarificationQuestion] = Field(
+        default_factory=list,
+        description="Clarification questions associated with this context.",
+    )
     provenance_records: list[ContextProvenance] = Field(
         default_factory=list,
         description="Provenance audit trail for items in the context.",
@@ -258,6 +266,13 @@ class ProjectContext(BaseModel):
             for goal in self.goals:
                 lines.append(f" - {goal}")
 
+        if self.clarification_questions:
+            lines.append("Clarification Questions Context:")
+            for q in self.clarification_questions:
+                answered = any(a.question_id == q.id for a in self.user_clarifications)
+                status_str = "Answered by User" if answered else "Pending User Answer"
+                lines.append(f" - [{q.id}] ({status_str}) {q.question} (Rationale: {q.rationale})")
+
         if self.user_clarifications:
             lines.append("User Clarifications:")
             for c in self.user_clarifications:
@@ -268,6 +283,14 @@ class ProjectContext(BaseModel):
             lines.append("Existing Approved Requirements:")
             for r in self.existing_approved_requirements:
                 lines.append(f" - [{r.type.value.upper()}] {r.title} ({r.priority.value}): {r.description}")
+
+        if self.existing_proposed_requirements:
+            lines.append("Previously Proposed Draft Requirements (Subject to Refinement):")
+            for req in self.existing_proposed_requirements:
+                req_id = req.get("id", "Unknown") if isinstance(req, dict) else getattr(req, "id", "Unknown")
+                title = req.get("title", "") if isinstance(req, dict) else getattr(req, "title", "")
+                desc = req.get("description", "") if isinstance(req, dict) else getattr(req, "description", "")
+                lines.append(f" - [{req_id}] {title}: {desc}")
 
         return "\n".join(lines)
 

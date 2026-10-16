@@ -27,6 +27,7 @@ from app.services.requirement import (
     RequirementTaskAlreadyLinkedError,
     RequirementTaskNotLinkedError,
 )
+from app.services.requirement_refinement import RequirementRefinementService
 from app.services.task import TaskNotFoundError, TaskProjectMismatchError, TaskService
 
 __all__ = [
@@ -52,6 +53,7 @@ __all__ = [
     'ProjectService',
     'RequirementNotFoundError',
     'RequirementProjectMismatchError',
+    'RequirementRefinementService',
     'RequirementService',
     'RequirementTaskAlreadyLinkedError',
     'RequirementTaskNotLinkedError',
@@ -59,3 +61,4 @@ __all__ = [
     'TaskProjectMismatchError',
     'TaskService',
 ]
+

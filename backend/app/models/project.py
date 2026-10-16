@@ -12,6 +12,7 @@ from app.database.base import Base
 
 if TYPE_CHECKING:
     from app.models.architecture import Architecture
+    from app.models.clarification import ClarificationSession, GenerationRevision
     from app.models.task import Task
 
 
@@ -58,6 +59,17 @@ class Project(Base):
         back_populates="project",
         cascade="all, delete-orphan",
     )
+    clarification_sessions: Mapped[list[ClarificationSession]] = relationship(
+        "ClarificationSession",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
+    generation_revisions: Mapped[list[GenerationRevision]] = relationship(
+        "GenerationRevision",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f'Project(id={self.id!r}, name={self.name!r})'
+

@@ -1,10 +1,12 @@
 from app.database.base import Base
 from app.database.session import SessionLocal, check_database_connection, create_database_engine, engine, get_db, init_db
-from app.models import Architecture, Project, Requirement, RequirementTask, Task
+from app.models import Architecture, ClarificationSession, GenerationRevision, Project, Requirement, RequirementTask, Task
 
 __all__ = [
     'Base',
     'Architecture',
+    'ClarificationSession',
+    'GenerationRevision',
     'Project',
     'Requirement',
     'RequirementTask',
@@ -16,3 +18,4 @@ __all__ = [
     'check_database_connection',
     'init_db',
 ]
+
